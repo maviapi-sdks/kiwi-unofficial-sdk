@@ -1,0 +1,24 @@
+{
+  "name": "maviapi-sdks/kiwi-unofficial-sdk",
+  "description": "Unofficial Kiwi.com API client",
+  "type": "library",
+  "license": "MIT",
+  "keywords": [
+    "kiwi",
+    "kiwi-api",
+    "unofficial",
+    "sdk",
+    "maviapi"
+  ],
+  "homepage": "https://maviapi.com/apis/kiwi",
+  "require": {
+    "php": ">=8.1",
+    "ext-curl": "*",
+    "ext-json": "*"
+  },
+  "autoload": {
+    "classmap": [
+      "php/"
+    ]
+  }
+}
