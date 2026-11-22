@@ -89,7 +89,7 @@ print_r($result);
 
 ```ruby
 # Gemfile
-gem "kiwi_sdk", git: "https://github.com/maviapi-sdks/kiwi-unofficial-sdk"
+gem "kiwi_sdk", git: "https://github.com/maviapi-sdks/kiwi-unofficial-sdk", branch: "main"
 ```
 
 ```ruby
