@@ -669,8 +669,8 @@ Parameters:
 
 - `from` (string, required): Origin: place name, IATA code or Kiwi id (e.g. 'london', 'LHR', 'City:london_gb'). Example: `london`.
 - `to` (string, required): Destination: place name, IATA code or Kiwi id. Example: `istanbul`.
-- `date` (string, optional): Outbound departure date, YYYY-MM-DD. Defaults to ~30 days out. Example: `2026-09-10`.
-- `return_date` (string, optional): Optional inbound date, YYYY-MM-DD. Set it for a round trip; omit for one-way. Example: `2026-09-17`.
+- `date` (string, optional): Outbound departure date, YYYY-MM-DD. Defaults to ~30 days out. Example: `2026-12-24`.
+- `return_date` (string, optional): Optional inbound date, YYYY-MM-DD. Set it for a round trip; omit for one-way. Example: `2026-12-31`.
 - `adults` (integer, optional): Adult passengers (1-9). Example: `1`.
 - `children` (integer, optional): Child passengers (0-9). Example: `0`.
 - `infants` (integer, optional): Infant passengers (0-9). Example: `0`.
