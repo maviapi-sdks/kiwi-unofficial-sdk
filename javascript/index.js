@@ -57,8 +57,17 @@ export class KiwiClient {
    * One Kiwi location by id or code: name, type, codes, city, country, region,
    * continent, time zone, population and coordinates.
    */
-  placesId(params) {
+  placesById(params) {
     return this.request("/places/{id}", params, ["id"]);
+  }
+
+  /**
+   * Check one itinerary from /search-v2 or /search-v3 again before booking: whether it
+   * is still available, its current price for the given passengers and currency, a fresh
+   * booking link, fetched_at and expires_at. Never cached.
+   */
+  revalidate(params) {
+    return this.request("/revalidate", params, ["id"]);
   }
 
   /**
@@ -86,6 +95,16 @@ export class KiwiClient {
    */
   searchV2(params) {
     return this.request("/search-v2", params, ["from", "to"]);
+  }
+
+  /**
+   * Flight search with date windows plus several origins and destinations
+   * (from=BRU,CRL), local departure and arrival time windows, and every itinerary the
+   * search has, paged by cursor, with total_estimate. Each itinerary names the origin
+   * and destination it matched and when its price expires.
+   */
+  searchV3(params) {
+    return this.request("/search-v3", params, ["from", "to"]);
   }
 
   /** GET one endpoint path. Parameters named in the path go there, the rest in the query. */

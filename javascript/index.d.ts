@@ -98,6 +98,9 @@ export interface ExploreParams {
    * Pagination offset over every destination city
    */
   "offset"?: number;
+  undefined?: string;
+  undefined?: string;
+  undefined?: string;
 }
 
 export interface PlacesParams {
@@ -117,6 +120,9 @@ export interface PlacesParams {
    * Pagination offset
    */
   "offset"?: number;
+  undefined?: string;
+  undefined?: string;
+  undefined?: string;
 }
 
 export interface PlacesV2Params {
@@ -139,15 +145,44 @@ export interface PlacesV2Params {
    * Pagination offset within the at most 1000 places of a query (see data.cap)
    */
   "offset"?: number;
+  undefined?: string;
+  undefined?: string;
+  undefined?: string;
 }
 
-export interface PlacesIdParams {
+export interface PlacesByIdParams {
   /**
    * A Kiwi location id: an airport code (CRL), a city id (london_gb), a country code
    * (GB), a subdivision (FL_US), a continent (europe), or a search id from /places-v2 or
    * /explore (Airport:CRL, City:london_gb)
    */
   "id": string;
+  undefined?: string;
+}
+
+export interface RevalidateParams {
+  /**
+   * The itinerary id (`id`) of a row from /search-v2 or /search-v3, one-way or return
+   */
+  "id": string;
+  /**
+   * Price currency (3-letter ISO code). Pass the currency of the search the id came from
+   * to compare with quoted_price
+   */
+  "currency"?: string;
+  /**
+   * Adult passengers (1-9)
+   */
+  "adults"?: number;
+  /**
+   * Child passengers (0-8)
+   */
+  "children"?: number;
+  /**
+   * Infant passengers, at most one per adult
+   */
+  "infants"?: number;
+  undefined?: string;
 }
 
 export interface RoutesParams {
@@ -164,6 +199,9 @@ export interface RoutesParams {
    * Pagination offset within the sub-sitemap
    */
   "offset"?: number;
+  undefined?: string;
+  undefined?: string;
+  undefined?: string;
 }
 
 export interface SearchParams {
@@ -215,6 +253,9 @@ export interface SearchParams {
    * Pagination offset
    */
   "offset"?: number;
+  undefined?: string;
+  undefined?: string;
+  undefined?: string;
 }
 
 export interface SearchV2Params {
@@ -294,6 +335,114 @@ export interface SearchV2Params {
    * reachable by offset: narrow the dates, price or stops instead
    */
   "offset"?: number;
+  undefined?: string;
+  undefined?: string;
+  undefined?: string;
+}
+
+export interface SearchV3Params {
+  /**
+   * Origin: one place or a comma list of up to 3 (BRU,CRL or LON,STN). Each item follows
+   * the /search-v2 rules: a 3-letter code is an airport (else a metro city code such as
+   * LON), an upper-case 2-letter code a country (else a continent), then a name of any
+   * place type, case and accent insensitive, or a search id from /places-v2
+   * ('Airport:CRL'). Names that contain a comma need their search id. An unclear item
+   * answers 400 with candidates
+   */
+  "from": string;
+  /**
+   * Destination: one place or a comma list of up to 3, same rules as from, or 'anywhere'
+   * alone for every destination
+   */
+  "to": string;
+  /**
+   * Start of the departure date window, YYYY-MM-DD. Defaults to 30 days from today
+   */
+  "date_from"?: string;
+  /**
+   * End of the departure date window, YYYY-MM-DD (inclusive, at most 92 days after
+   * date_from). Defaults to date_from (a single day)
+   */
+  "date_to"?: string;
+  /**
+   * Start of the return date window, YYYY-MM-DD. Set it for a round trip; omit for
+   * one-way
+   */
+  "return_from"?: string;
+  /**
+   * End of the return date window, YYYY-MM-DD (inclusive). Defaults to return_from
+   */
+  "return_to"?: string;
+  /**
+   * Earliest local departure time of the outbound leg, HH:MM (00:00 to 23:59), at the
+   * first departure airport. A window cannot cross midnight
+   */
+  "departure_from"?: string;
+  /**
+   * Latest local departure time of the outbound leg, HH:MM (inclusive, 00:00 to 24:00),
+   * at the first departure airport. A window cannot cross midnight
+   */
+  "departure_to"?: string;
+  /**
+   * Earliest local arrival time of the outbound leg, HH:MM (00:00 to 23:59), at the
+   * final arrival airport. A window cannot cross midnight
+   */
+  "arrival_from"?: string;
+  /**
+   * Latest local arrival time of the outbound leg, HH:MM (inclusive, 00:00 to 24:00), at
+   * the final arrival airport. A window cannot cross midnight
+   */
+  "arrival_to"?: string;
+  /**
+   * Lowest total price, in `currency`
+   */
+  "min_price"?: number;
+  /**
+   * Highest total price, in `currency`
+   */
+  "max_price"?: number;
+  /**
+   * Most stops per leg (0 = direct only). Omit for any. One of: 0, 1, 2, 3
+   */
+  "max_stops"?: number;
+  /**
+   * Adult passengers (1-9)
+   */
+  "adults"?: number;
+  /**
+   * Child passengers (0-8)
+   */
+  "children"?: number;
+  /**
+   * Infant passengers (at most one per adult)
+   */
+  "infants"?: number;
+  /**
+   * Cabin class. One of: ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST
+   */
+  "cabin"?: string;
+  /**
+   * Order of the itineraries. PRICE and DURATION sort all of them; QUALITY keeps the
+   * site's own ranking inside each part of the search (the best of each first), then
+   * price. One of: QUALITY, PRICE, DURATION
+   */
+  "sort"?: string;
+  /**
+   * Price currency (3-letter ISO code); min_price and max_price use it too
+   */
+  "currency"?: string;
+  /**
+   * Itineraries per page. Every itinerary of the search is reachable: follow
+   * pagination.next_cursor (or offset) while pagination.has_more is true
+   */
+  "limit"?: number;
+  /**
+   * Offset into all the itineraries of the search
+   */
+  "offset"?: number;
+  undefined?: string;
+  undefined?: string;
+  undefined?: string;
 }
 
 export declare class KiwiClient {
@@ -341,6 +490,9 @@ export declare class KiwiClient {
    *   limit (integer): Destinations per page (max 1000). Every reachable city is
    *     returned, see pagination.total
    *   offset (integer): Pagination offset over every destination city
+   *   undefined (string)
+   *   undefined (string)
+   *   undefined (string)
    */
   explore(params: ExploreParams): Promise<Record<string, any>>;
   /**
@@ -353,6 +505,9 @@ export declare class KiwiClient {
    *     subdivision
    *   limit (integer): Max places per page
    *   offset (integer): Pagination offset
+   *   undefined (string)
+   *   undefined (string)
+   *   undefined (string)
    */
   places(params?: PlacesParams): Promise<Record<string, any>>;
   /**
@@ -368,6 +523,9 @@ export declare class KiwiClient {
    *   limit (integer): Places per page (max 1000)
    *   offset (integer): Pagination offset within the at most 1000 places of a query
    *     (see data.cap)
+   *   undefined (string)
+   *   undefined (string)
+   *   undefined (string)
    */
   placesV2(params: PlacesV2Params): Promise<Record<string, any>>;
   /**
@@ -378,8 +536,25 @@ export declare class KiwiClient {
    *   id (string, required): A Kiwi location id: an airport code (CRL), a city id
    *     (london_gb), a country code (GB), a subdivision (FL_US), a continent (europe),
    *     or a search id from /places-v2 or /explore (Airport:CRL, City:london_gb)
+   *   undefined (string)
    */
-  placesId(params: PlacesIdParams): Promise<Record<string, any>>;
+  placesById(params: PlacesByIdParams): Promise<Record<string, any>>;
+  /**
+   * Check one itinerary from /search-v2 or /search-v3 again before booking: whether it
+   * is still available, its current price for the given passengers and currency, a fresh
+   * booking link, fetched_at and expires_at. Never cached.
+   *
+   * Parameters:
+   *   id (string, required): The itinerary id (`id`) of a row from /search-v2 or
+   *     /search-v3, one-way or return
+   *   currency (string): Price currency (3-letter ISO code). Pass the currency of the
+   *     search the id came from to compare with quoted_price
+   *   adults (integer): Adult passengers (1-9)
+   *   children (integer): Child passengers (0-8)
+   *   infants (integer): Infant passengers, at most one per adult
+   *   undefined (string)
+   */
+  revalidate(params: RevalidateParams): Promise<Record<string, any>>;
   /**
    * List published city-pair routes from Kiwi route sitemaps. Params: page,
    * limit/offset.
@@ -389,6 +564,9 @@ export declare class KiwiClient {
    *     routes per file across many files
    *   limit (integer): Max routes per page
    *   offset (integer): Pagination offset within the sub-sitemap
+   *   undefined (string)
+   *   undefined (string)
+   *   undefined (string)
    */
   routes(params?: RoutesParams): Promise<Record<string, any>>;
   /**
@@ -411,6 +589,9 @@ export declare class KiwiClient {
    *   currency (string): Price currency (ISO code)
    *   limit (integer): Max itineraries per page
    *   offset (integer): Pagination offset
+   *   undefined (string)
+   *   undefined (string)
+   *   undefined (string)
    */
   search(params: SearchParams): Promise<Record<string, any>>;
   /**
@@ -452,6 +633,65 @@ export declare class KiwiClient {
    *     (see data.cap)
    *   offset (integer): Offset within the at most 50 itineraries of this search. Rows
    *     past 50 are not reachable by offset: narrow the dates, price or stops instead
+   *   undefined (string)
+   *   undefined (string)
+   *   undefined (string)
    */
   searchV2(params: SearchV2Params): Promise<Record<string, any>>;
+  /**
+   * Flight search with date windows plus several origins and destinations
+   * (from=BRU,CRL), local departure and arrival time windows, and every itinerary the
+   * search has, paged by cursor, with total_estimate. Each itinerary names the origin
+   * and destination it matched and when its price expires.
+   *
+   * Parameters:
+   *   from (string, required): Origin: one place or a comma list of up to 3 (BRU,CRL
+   *     or LON,STN). Each item follows the /search-v2 rules: a 3-letter code is an
+   *     airport (else a metro city code such as LON), an upper-case 2-letter code a
+   *     country (else a continent), then a name of any place type, case and accent
+   *     insensitive, or a search id from /places-v2 ('Airport:CRL'). Names that contain
+   *     a comma need their search id. An unclear item answers 400 with candidates
+   *   to (string, required): Destination: one place or a comma list of up to 3, same
+   *     rules as from, or 'anywhere' alone for every destination
+   *   date_from (string): Start of the departure date window, YYYY-MM-DD. Defaults to
+   *     30 days from today
+   *   date_to (string): End of the departure date window, YYYY-MM-DD (inclusive, at
+   *     most 92 days after date_from). Defaults to date_from (a single day)
+   *   return_from (string): Start of the return date window, YYYY-MM-DD. Set it for a
+   *     round trip; omit for one-way
+   *   return_to (string): End of the return date window, YYYY-MM-DD (inclusive).
+   *     Defaults to return_from
+   *   departure_from (string): Earliest local departure time of the outbound leg,
+   *     HH:MM (00:00 to 23:59), at the first departure airport. A window cannot cross
+   *     midnight
+   *   departure_to (string): Latest local departure time of the outbound leg, HH:MM
+   *     (inclusive, 00:00 to 24:00), at the first departure airport. A window cannot
+   *     cross midnight
+   *   arrival_from (string): Earliest local arrival time of the outbound leg, HH:MM
+   *     (00:00 to 23:59), at the final arrival airport. A window cannot cross midnight
+   *   arrival_to (string): Latest local arrival time of the outbound leg, HH:MM
+   *     (inclusive, 00:00 to 24:00), at the final arrival airport. A window cannot cross
+   *     midnight
+   *   min_price (number): Lowest total price, in `currency`
+   *   max_price (number): Highest total price, in `currency`
+   *   max_stops (integer): Most stops per leg (0 = direct only). Omit for any. One of:
+   *     0, 1, 2, 3
+   *   adults (integer): Adult passengers (1-9)
+   *   children (integer): Child passengers (0-8)
+   *   infants (integer): Infant passengers (at most one per adult)
+   *   cabin (string): Cabin class. One of: ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST
+   *   sort (string): Order of the itineraries. PRICE and DURATION sort all of them;
+   *     QUALITY keeps the site's own ranking inside each part of the search (the best of
+   *     each first), then price. One of: QUALITY, PRICE, DURATION
+   *   currency (string): Price currency (3-letter ISO code); min_price and max_price
+   *     use it too
+   *   limit (integer): Itineraries per page. Every itinerary of the search is
+   *     reachable: follow pagination.next_cursor (or offset) while pagination.has_more
+   *     is true
+   *   offset (integer): Offset into all the itineraries of the search
+   *   undefined (string)
+   *   undefined (string)
+   *   undefined (string)
+   */
+  searchV3(params: SearchV3Params): Promise<Record<string, any>>;
 }

@@ -79,12 +79,15 @@ class KiwiClient
      *   $limit (integer): Destinations per page (max 1000). Every reachable city is
      *     returned, see pagination.total
      *   $offset (integer): Pagination offset over every destination city
+     *   $undefined (string)
+     *   $undefined (string)
+     *   $undefined (string)
      *
      * @return array<string, mixed>
      */
-    public function explore(string $from, ?string $to = null, ?string $date_from = null, ?string $date_to = null, ?string $return_from = null, ?string $return_to = null, ?float $min_price = null, ?float $max_price = null, ?int $max_stops = null, ?int $adults = null, ?int $children = null, ?int $infants = null, ?string $sort = null, ?string $currency = null, ?int $expand = null, ?int $limit = null, ?int $offset = null): array
+    public function explore(string $from, ?string $to = null, ?string $date_from = null, ?string $date_to = null, ?string $return_from = null, ?string $return_to = null, ?float $min_price = null, ?float $max_price = null, ?int $max_stops = null, ?int $adults = null, ?int $children = null, ?int $infants = null, ?string $sort = null, ?string $currency = null, ?int $expand = null, ?int $limit = null, ?int $offset = null, ?string $undefined = null, ?string $undefined = null, ?string $undefined = null): array
     {
-        return $this->get('/explore', ['from' => $from, 'to' => $to, 'date_from' => $date_from, 'date_to' => $date_to, 'return_from' => $return_from, 'return_to' => $return_to, 'min_price' => $min_price, 'max_price' => $max_price, 'max_stops' => $max_stops, 'adults' => $adults, 'children' => $children, 'infants' => $infants, 'sort' => $sort, 'currency' => $currency, 'expand' => $expand, 'limit' => $limit, 'offset' => $offset]);
+        return $this->get('/explore', ['from' => $from, 'to' => $to, 'date_from' => $date_from, 'date_to' => $date_to, 'return_from' => $return_from, 'return_to' => $return_to, 'min_price' => $min_price, 'max_price' => $max_price, 'max_stops' => $max_stops, 'adults' => $adults, 'children' => $children, 'infants' => $infants, 'sort' => $sort, 'currency' => $currency, 'expand' => $expand, 'limit' => $limit, 'offset' => $offset, undefined => $undefined, undefined => $undefined, undefined => $undefined]);
     }
 
     /**
@@ -97,12 +100,15 @@ class KiwiClient
      *     subdivision
      *   $limit (integer): Max places per page
      *   $offset (integer): Pagination offset
+     *   $undefined (string)
+     *   $undefined (string)
+     *   $undefined (string)
      *
      * @return array<string, mixed>
      */
-    public function places(?string $q = null, ?string $type = null, ?int $limit = null, ?int $offset = null): array
+    public function places(?string $q = null, ?string $type = null, ?int $limit = null, ?int $offset = null, ?string $undefined = null, ?string $undefined = null, ?string $undefined = null): array
     {
-        return $this->get('/places', ['q' => $q, 'type' => $type, 'limit' => $limit, 'offset' => $offset]);
+        return $this->get('/places', ['q' => $q, 'type' => $type, 'limit' => $limit, 'offset' => $offset, undefined => $undefined, undefined => $undefined, undefined => $undefined]);
     }
 
     /**
@@ -118,12 +124,15 @@ class KiwiClient
      *   $limit (integer): Places per page (max 1000)
      *   $offset (integer): Pagination offset within the at most 1000 places of a query
      *     (see data.cap)
+     *   $undefined (string)
+     *   $undefined (string)
+     *   $undefined (string)
      *
      * @return array<string, mixed>
      */
-    public function placesV2(string $q, ?string $type = null, ?int $limit = null, ?int $offset = null): array
+    public function placesV2(string $q, ?string $type = null, ?int $limit = null, ?int $offset = null, ?string $undefined = null, ?string $undefined = null, ?string $undefined = null): array
     {
-        return $this->get('/places-v2', ['q' => $q, 'type' => $type, 'limit' => $limit, 'offset' => $offset]);
+        return $this->get('/places-v2', ['q' => $q, 'type' => $type, 'limit' => $limit, 'offset' => $offset, undefined => $undefined, undefined => $undefined, undefined => $undefined]);
     }
 
     /**
@@ -134,12 +143,35 @@ class KiwiClient
      *   $id (string, required): A Kiwi location id: an airport code (CRL), a city id
      *     (london_gb), a country code (GB), a subdivision (FL_US), a continent (europe),
      *     or a search id from /places-v2 or /explore (Airport:CRL, City:london_gb)
+     *   $undefined (string)
      *
      * @return array<string, mixed>
      */
-    public function placesId(string $id): array
+    public function placesById(string $id, ?string $undefined = null): array
     {
-        return $this->get('/places/{id}', ['id' => $id]);
+        return $this->get('/places/{id}', ['id' => $id, undefined => $undefined]);
+    }
+
+    /**
+     * Check one itinerary from /search-v2 or /search-v3 again before booking: whether it
+     * is still available, its current price for the given passengers and currency, a fresh
+     * booking link, fetched_at and expires_at. Never cached.
+     *
+     * Parameters:
+     *   $id (string, required): The itinerary id (`id`) of a row from /search-v2 or
+     *     /search-v3, one-way or return
+     *   $currency (string): Price currency (3-letter ISO code). Pass the currency of the
+     *     search the id came from to compare with quoted_price
+     *   $adults (integer): Adult passengers (1-9)
+     *   $children (integer): Child passengers (0-8)
+     *   $infants (integer): Infant passengers, at most one per adult
+     *   $undefined (string)
+     *
+     * @return array<string, mixed>
+     */
+    public function revalidate(string $id, ?string $currency = null, ?int $adults = null, ?int $children = null, ?int $infants = null, ?string $undefined = null): array
+    {
+        return $this->get('/revalidate', ['id' => $id, 'currency' => $currency, 'adults' => $adults, 'children' => $children, 'infants' => $infants, undefined => $undefined]);
     }
 
     /**
@@ -151,12 +183,15 @@ class KiwiClient
      *     routes per file across many files
      *   $limit (integer): Max routes per page
      *   $offset (integer): Pagination offset within the sub-sitemap
+     *   $undefined (string)
+     *   $undefined (string)
+     *   $undefined (string)
      *
      * @return array<string, mixed>
      */
-    public function routes(?int $page = null, ?int $limit = null, ?int $offset = null): array
+    public function routes(?int $page = null, ?int $limit = null, ?int $offset = null, ?string $undefined = null, ?string $undefined = null, ?string $undefined = null): array
     {
-        return $this->get('/routes', ['page' => $page, 'limit' => $limit, 'offset' => $offset]);
+        return $this->get('/routes', ['page' => $page, 'limit' => $limit, 'offset' => $offset, undefined => $undefined, undefined => $undefined, undefined => $undefined]);
     }
 
     /**
@@ -179,12 +214,15 @@ class KiwiClient
      *   $currency (string): Price currency (ISO code)
      *   $limit (integer): Max itineraries per page
      *   $offset (integer): Pagination offset
+     *   $undefined (string)
+     *   $undefined (string)
+     *   $undefined (string)
      *
      * @return array<string, mixed>
      */
-    public function search(string $from, string $to, ?string $date = null, ?string $return_date = null, ?int $adults = null, ?int $children = null, ?int $infants = null, ?string $cabin = null, ?string $sort = null, ?string $currency = null, ?int $limit = null, ?int $offset = null): array
+    public function search(string $from, string $to, ?string $date = null, ?string $return_date = null, ?int $adults = null, ?int $children = null, ?int $infants = null, ?string $cabin = null, ?string $sort = null, ?string $currency = null, ?int $limit = null, ?int $offset = null, ?string $undefined = null, ?string $undefined = null, ?string $undefined = null): array
     {
-        return $this->get('/search', ['from' => $from, 'to' => $to, 'date' => $date, 'return_date' => $return_date, 'adults' => $adults, 'children' => $children, 'infants' => $infants, 'cabin' => $cabin, 'sort' => $sort, 'currency' => $currency, 'limit' => $limit, 'offset' => $offset]);
+        return $this->get('/search', ['from' => $from, 'to' => $to, 'date' => $date, 'return_date' => $return_date, 'adults' => $adults, 'children' => $children, 'infants' => $infants, 'cabin' => $cabin, 'sort' => $sort, 'currency' => $currency, 'limit' => $limit, 'offset' => $offset, undefined => $undefined, undefined => $undefined, undefined => $undefined]);
     }
 
     /**
@@ -226,12 +264,77 @@ class KiwiClient
      *     (see data.cap)
      *   $offset (integer): Offset within the at most 50 itineraries of this search. Rows
      *     past 50 are not reachable by offset: narrow the dates, price or stops instead
+     *   $undefined (string)
+     *   $undefined (string)
+     *   $undefined (string)
      *
      * @return array<string, mixed>
      */
-    public function searchV2(string $from, string $to, ?string $date_from = null, ?string $date_to = null, ?string $return_from = null, ?string $return_to = null, ?float $min_price = null, ?float $max_price = null, ?int $max_stops = null, ?int $adults = null, ?int $children = null, ?int $infants = null, ?string $cabin = null, ?string $sort = null, ?string $currency = null, ?int $limit = null, ?int $offset = null): array
+    public function searchV2(string $from, string $to, ?string $date_from = null, ?string $date_to = null, ?string $return_from = null, ?string $return_to = null, ?float $min_price = null, ?float $max_price = null, ?int $max_stops = null, ?int $adults = null, ?int $children = null, ?int $infants = null, ?string $cabin = null, ?string $sort = null, ?string $currency = null, ?int $limit = null, ?int $offset = null, ?string $undefined = null, ?string $undefined = null, ?string $undefined = null): array
     {
-        return $this->get('/search-v2', ['from' => $from, 'to' => $to, 'date_from' => $date_from, 'date_to' => $date_to, 'return_from' => $return_from, 'return_to' => $return_to, 'min_price' => $min_price, 'max_price' => $max_price, 'max_stops' => $max_stops, 'adults' => $adults, 'children' => $children, 'infants' => $infants, 'cabin' => $cabin, 'sort' => $sort, 'currency' => $currency, 'limit' => $limit, 'offset' => $offset]);
+        return $this->get('/search-v2', ['from' => $from, 'to' => $to, 'date_from' => $date_from, 'date_to' => $date_to, 'return_from' => $return_from, 'return_to' => $return_to, 'min_price' => $min_price, 'max_price' => $max_price, 'max_stops' => $max_stops, 'adults' => $adults, 'children' => $children, 'infants' => $infants, 'cabin' => $cabin, 'sort' => $sort, 'currency' => $currency, 'limit' => $limit, 'offset' => $offset, undefined => $undefined, undefined => $undefined, undefined => $undefined]);
+    }
+
+    /**
+     * Flight search with date windows plus several origins and destinations
+     * (from=BRU,CRL), local departure and arrival time windows, and every itinerary the
+     * search has, paged by cursor, with total_estimate. Each itinerary names the origin
+     * and destination it matched and when its price expires.
+     *
+     * Parameters:
+     *   $from (string, required): Origin: one place or a comma list of up to 3 (BRU,CRL
+     *     or LON,STN). Each item follows the /search-v2 rules: a 3-letter code is an
+     *     airport (else a metro city code such as LON), an upper-case 2-letter code a
+     *     country (else a continent), then a name of any place type, case and accent
+     *     insensitive, or a search id from /places-v2 ('Airport:CRL'). Names that contain
+     *     a comma need their search id. An unclear item answers 400 with candidates
+     *   $to (string, required): Destination: one place or a comma list of up to 3, same
+     *     rules as from, or 'anywhere' alone for every destination
+     *   $date_from (string): Start of the departure date window, YYYY-MM-DD. Defaults to
+     *     30 days from today
+     *   $date_to (string): End of the departure date window, YYYY-MM-DD (inclusive, at
+     *     most 92 days after date_from). Defaults to date_from (a single day)
+     *   $return_from (string): Start of the return date window, YYYY-MM-DD. Set it for a
+     *     round trip; omit for one-way
+     *   $return_to (string): End of the return date window, YYYY-MM-DD (inclusive).
+     *     Defaults to return_from
+     *   $departure_from (string): Earliest local departure time of the outbound leg,
+     *     HH:MM (00:00 to 23:59), at the first departure airport. A window cannot cross
+     *     midnight
+     *   $departure_to (string): Latest local departure time of the outbound leg, HH:MM
+     *     (inclusive, 00:00 to 24:00), at the first departure airport. A window cannot
+     *     cross midnight
+     *   $arrival_from (string): Earliest local arrival time of the outbound leg, HH:MM
+     *     (00:00 to 23:59), at the final arrival airport. A window cannot cross midnight
+     *   $arrival_to (string): Latest local arrival time of the outbound leg, HH:MM
+     *     (inclusive, 00:00 to 24:00), at the final arrival airport. A window cannot cross
+     *     midnight
+     *   $min_price (number): Lowest total price, in `currency`
+     *   $max_price (number): Highest total price, in `currency`
+     *   $max_stops (integer): Most stops per leg (0 = direct only). Omit for any. One
+     *     of: 0, 1, 2, 3
+     *   $adults (integer): Adult passengers (1-9)
+     *   $children (integer): Child passengers (0-8)
+     *   $infants (integer): Infant passengers (at most one per adult)
+     *   $cabin (string): Cabin class. One of: ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST
+     *   $sort (string): Order of the itineraries. PRICE and DURATION sort all of them;
+     *     QUALITY keeps the site's own ranking inside each part of the search (the best of
+     *     each first), then price. One of: QUALITY, PRICE, DURATION
+     *   $currency (string): Price currency (3-letter ISO code); min_price and max_price
+     *     use it too
+     *   $limit (integer): Itineraries per page. Every itinerary of the search is
+     *     reachable: follow pagination.next_cursor (or offset) while pagination.has_more
+     *     is true
+     *   $offset (integer): Offset into all the itineraries of the search
+     *   $undefined (string)
+     *   $undefined (string)
+     *   $undefined (string)
+     *
+     * @return array<string, mixed>
+     */
+    public function searchV3(string $from, string $to, ?string $date_from = null, ?string $date_to = null, ?string $return_from = null, ?string $return_to = null, ?string $departure_from = null, ?string $departure_to = null, ?string $arrival_from = null, ?string $arrival_to = null, ?float $min_price = null, ?float $max_price = null, ?int $max_stops = null, ?int $adults = null, ?int $children = null, ?int $infants = null, ?string $cabin = null, ?string $sort = null, ?string $currency = null, ?int $limit = null, ?int $offset = null, ?string $undefined = null, ?string $undefined = null, ?string $undefined = null): array
+    {
+        return $this->get('/search-v3', ['from' => $from, 'to' => $to, 'date_from' => $date_from, 'date_to' => $date_to, 'return_from' => $return_from, 'return_to' => $return_to, 'departure_from' => $departure_from, 'departure_to' => $departure_to, 'arrival_from' => $arrival_from, 'arrival_to' => $arrival_to, 'min_price' => $min_price, 'max_price' => $max_price, 'max_stops' => $max_stops, 'adults' => $adults, 'children' => $children, 'infants' => $infants, 'cabin' => $cabin, 'sort' => $sort, 'currency' => $currency, 'limit' => $limit, 'offset' => $offset, undefined => $undefined, undefined => $undefined, undefined => $undefined]);
     }
 
     /**
