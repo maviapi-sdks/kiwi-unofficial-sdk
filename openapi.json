@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Kiwi.com API",
-    "version": "2026-11-26",
-    "description": "Search and compare flights on Kiwi.com — itineraries with live prices, airlines, routes and departure/arrival times, plus location and route discovery.\n\nEvery request needs an API key in the `Authorization: Bearer <key>` header. Create one at https://maviapi.com/dashboard/keys. A successful request uses one credit, unless its operation says more (`x-credits`). That price covers 200 rows (or the operation's `x-credits-rows`); a request that returns more pays it again for each further page of that many rows. The `x-maviapi-credits` response header says what a request cost.\n\nEndpoint reference with live examples: https://maviapi.com/apis/kiwi",
+    "version": "2026-11-27",
+    "description": "Search and compare flights on Kiwi.com — itineraries with live prices, airlines, routes and departure/arrival times, plus location and route discovery.\n\nEvery request needs an API key in the `Authorization: Bearer <key>` header. Create one at https://maviapi.com/dashboard/keys. A successful request uses one credit, unless its operation says more (`x-credits`). That price covers 200 rows (or the operation's `x-credits-rows`); a request that returns more pays it again for each further page of that many rows. The `x-maviapi-credits` response header says what a request cost. A query param an operation does not take is ignored and named in the `x-maviapi-unknown-params` response header; send the `x-maviapi-strict: 1` request header to have such a request refused with a free `400 unknown_param` instead.\n\nEndpoint reference with live examples: https://maviapi.com/apis/kiwi",
     "termsOfService": "https://maviapi.com/terms"
   },
   "externalDocs": {
@@ -21,6 +21,460 @@
     }
   ],
   "paths": {
+    "/airports-near": {
+      "get": {
+        "operationId": "airportsNear",
+        "summary": "Airports near a point",
+        "description": "Airports within a radius of a lat/lon point, nearest first, with distance, city, country and a popularity hint.",
+        "x-credits": 1,
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "description": "Latitude of the point, in decimal degrees.",
+            "schema": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "example": 51.5
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "description": "Longitude of the point, in decimal degrees.",
+            "schema": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "example": -0.12
+          },
+          {
+            "name": "radius_km",
+            "in": "query",
+            "required": false,
+            "description": "Search radius in km (default 150, max 500).",
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 150
+            },
+            "example": 50
+          },
+          {
+            "name": "include_inactive",
+            "in": "query",
+            "required": false,
+            "description": "true also returns airports Kiwi sells no flights from (small airfields, military fields).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "false",
+                "true"
+              ],
+              "default": "false"
+            },
+            "example": "false"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Airports per page. The source returns at most the 50 nearest airports per call (data.capped); narrow radius_km to stay under it.",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 50
+            },
+            "example": 50
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Offset within the at most 50 nearest airports of a call.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "example": 0
+          },
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/MaxAge"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The data, as JSON.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests the key may make in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the window starts again.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "x-maviapi-unknown-params": {
+                "description": "Query params this endpoint does not take, comma separated; they were ignored. Send `x-maviapi-strict: 1` to get a free `400 unknown_param` instead.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Age": {
+                "description": "Seconds since the data was read from the site, as the body's `age`.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "x-maviapi-fetched-at": {
+                "description": "When the data was read from the site (ISO 8601, UTC), as the body's `fetched_at`.",
+                "schema": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "point": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "lat": {
+                              "type": [
+                                "number",
+                                "null"
+                              ],
+                              "example": 51.5
+                            },
+                            "lon": {
+                              "type": [
+                                "number",
+                                "null"
+                              ],
+                              "example": -0.12
+                            }
+                          }
+                        },
+                        "radius_km": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "example": 150
+                        },
+                        "include_inactive": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ],
+                          "example": false
+                        },
+                        "total": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 8
+                        },
+                        "cap": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 50
+                        },
+                        "capped": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ],
+                          "example": false,
+                          "description": "True when the source returned its 50-row cap: there may be more airports in the radius."
+                        },
+                        "airports": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "code": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "example": "LHR",
+                                "description": "IATA airport code."
+                              },
+                              "id": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "example": "LHR",
+                                "description": "Kiwi location id (feeds /places/{id})."
+                              },
+                              "search_id": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "example": "Airport:LHR",
+                                "description": "Pass to /search-v2 or /explore from/to."
+                              },
+                              "icao": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "example": "EGLL"
+                              },
+                              "name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "example": "Heathrow"
+                              },
+                              "city": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "id": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "london_gb"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "London"
+                                  }
+                                }
+                              },
+                              "country": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "code": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "GB"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "United Kingdom"
+                                  }
+                                }
+                              },
+                              "timezone": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "example": "Europe/London"
+                              },
+                              "coordinates": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "lat": {
+                                    "type": [
+                                      "number",
+                                      "null"
+                                    ],
+                                    "example": 51.4775
+                                  },
+                                  "lon": {
+                                    "type": [
+                                      "number",
+                                      "null"
+                                    ],
+                                    "example": -0.461389
+                                  }
+                                }
+                              },
+                              "distance_km": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ],
+                                "example": 23.7,
+                                "description": "Great-circle distance from the point, in km."
+                              },
+                              "popularity": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ],
+                                "example": 4458934,
+                                "description": "Kiwi destination popularity score: a traffic hint, higher is busier."
+                              },
+                              "global_rank": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ],
+                                "example": 11,
+                                "description": "Kiwi worldwide destination rank, 1 is the most popular."
+                              },
+                              "active": {
+                                "type": [
+                                  "boolean",
+                                  "null"
+                                ],
+                                "example": true,
+                                "description": "False for airports Kiwi sells no flights from (only returned with include_inactive=true)."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "cached": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ],
+                      "example": false
+                    },
+                    "source": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "example": "kiwi:locations"
+                    },
+                    "pagination": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "total": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 8
+                        },
+                        "limit": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 50
+                        },
+                        "offset": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 0
+                        },
+                        "count": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 8
+                        },
+                        "has_more": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ],
+                          "example": false
+                        },
+                        "next_cursor": {
+                          "$ref": "#/components/schemas/NextCursor"
+                        }
+                      }
+                    },
+                    "fetched_at": {
+                      "$ref": "#/components/schemas/FetchedAt"
+                    },
+                    "age": {
+                      "$ref": "#/components/schemas/Age"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/CreditLimitReached"
+          },
+          "403": {
+            "$ref": "#/components/responses/AccountSuspended"
+          },
+          "410": {
+            "$ref": "#/components/responses/CursorExpired"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamFailed"
+          }
+        }
+      }
+    },
     "/explore": {
       "get": {
         "operationId": "explore",
@@ -265,6 +719,12 @@
                 "description": "Seconds until the window starts again.",
                 "schema": {
                   "type": "integer"
+                }
+              },
+              "x-maviapi-unknown-params": {
+                "description": "Query params this endpoint does not take, comma separated; they were ignored. Send `x-maviapi-strict: 1` to get a free `400 unknown_param` instead.",
+                "schema": {
+                  "type": "string"
                 }
               },
               "Age": {
@@ -1580,6 +2040,1175 @@
         }
       }
     },
+    "/explore-v2": {
+      "get": {
+        "operationId": "exploreV2",
+        "summary": "Explore destinations with flight details",
+        "description": "Cheapest flight to every destination city from a place, like the site's 'anywhere' search, with that flight's airlines, stops, duration, local departure and arrival times and booking link on every row. Same filters and destination fields as /explore; paged by cursor.",
+        "x-credits": 1,
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "description": "Origin. Codes first: a 3-letter code is an airport (else a metro city code such as LON), an upper-case 2-letter code a country (else a continent such as EU). Then a name of any place type (city, airport, subdivision, country, region, continent), case and accent insensitive, or a search id from /places-v2 (e.g. 'Airport:CRL', 'Country:TR'). An unclear or unknown value answers 400 with candidates.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "London"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "description": "Optional broad scope for the destinations: a country, subdivision, region or continent (code, name or search id, same rules as from). Omit or 'anywhere' for every destination.",
+            "schema": {
+              "type": "string",
+              "default": "anywhere"
+            },
+            "example": "Portugal"
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "description": "Start of the departure date window, YYYY-MM-DD. Defaults to 30 days from today.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2027-03-10"
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "description": "End of the departure date window, YYYY-MM-DD (inclusive). Defaults to date_from (a single day).",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2027-03-11"
+          },
+          {
+            "name": "return_from",
+            "in": "query",
+            "required": false,
+            "description": "Start of the return date window, YYYY-MM-DD. Set it for a round trip; omit for one-way.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2027-03-17"
+          },
+          {
+            "name": "return_to",
+            "in": "query",
+            "required": false,
+            "description": "End of the return date window, YYYY-MM-DD (inclusive). Defaults to return_from.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2027-03-18"
+          },
+          {
+            "name": "min_price",
+            "in": "query",
+            "required": false,
+            "description": "Lowest price per destination, in `currency`.",
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            },
+            "example": 100
+          },
+          {
+            "name": "max_price",
+            "in": "query",
+            "required": false,
+            "description": "Highest price per destination, in `currency`.",
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            },
+            "example": 500
+          },
+          {
+            "name": "max_stops",
+            "in": "query",
+            "required": false,
+            "description": "Most stops per leg (0 = direct only). Omit for any.",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1,
+                2,
+                3
+              ]
+            },
+            "example": 0
+          },
+          {
+            "name": "adults",
+            "in": "query",
+            "required": false,
+            "description": "Adult passengers (1-9).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9,
+              "default": 1
+            },
+            "example": 2
+          },
+          {
+            "name": "children",
+            "in": "query",
+            "required": false,
+            "description": "Child passengers (0-8).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 8,
+              "default": 0
+            },
+            "example": 1
+          },
+          {
+            "name": "infants",
+            "in": "query",
+            "required": false,
+            "description": "Infant passengers (at most one per adult).",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9,
+              "default": 0
+            },
+            "example": 1
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "description": "Order of the cities (and which flight sets the destination price): PRICE = cheapest first, POPULARITY = the site's popular destinations first. The flight on each row is always that city's cheapest itinerary.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PRICE",
+                "POPULARITY",
+                "QUALITY",
+                "DURATION",
+                "DATE"
+              ],
+              "default": "PRICE"
+            },
+            "example": "PRICE"
+          },
+          {
+            "name": "currency",
+            "in": "query",
+            "required": false,
+            "description": "Price currency (3-letter ISO code); min_price and max_price use it too.",
+            "schema": {
+              "type": "string",
+              "default": "eur"
+            },
+            "example": "usd"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Destinations per page (max 200). Every reachable city is returned, see pagination.total; walk the rest with cursor.",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 200
+            },
+            "example": 50
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Pagination offset over every destination city.",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "example": 0
+          },
+          {
+            "$ref": "#/components/parameters/Fields"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/MaxAge"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The data, as JSON.",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "Requests the key may make in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Requests left in the current window.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Seconds until the window starts again.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "x-maviapi-unknown-params": {
+                "description": "Query params this endpoint does not take, comma separated; they were ignored. Send `x-maviapi-strict: 1` to get a free `400 unknown_param` instead.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Age": {
+                "description": "Seconds since the data was read from the site, as the body's `age`.",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "x-maviapi-fetched-at": {
+                "description": "When the data was read from the site (ISO 8601, UTC), as the body's `fetched_at`.",
+                "schema": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "search": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "from": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "description": "What the caller text resolved to.",
+                              "properties": {
+                                "input": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": "London"
+                                },
+                                "id": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": "City:london_gb",
+                                  "description": "Search id; null for anywhere."
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": "London"
+                                },
+                                "type": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": "city",
+                                  "description": "airport, city, subdivision, country, region, continent or anywhere"
+                                },
+                                "code": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": "LON"
+                                },
+                                "country": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": "GB"
+                                },
+                                "matched_by": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": "name",
+                                  "description": "id, code, name, top_hit or anywhere"
+                                },
+                                "alternatives": {
+                                  "type": [
+                                    "array",
+                                    "null"
+                                  ],
+                                  "description": "Other places with the same exact name; pass one's id to pick it.",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "Subdivision:GA_US"
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "Georgia"
+                                      },
+                                      "type": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "subdivision"
+                                      },
+                                      "code": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "GA"
+                                      },
+                                      "parent": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "United States"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "to": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "description": "What the caller text resolved to.",
+                              "properties": {
+                                "input": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": "anywhere"
+                                },
+                                "id": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": null,
+                                  "description": "Search id; null for anywhere."
+                                },
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": "Anywhere"
+                                },
+                                "type": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": "anywhere",
+                                  "description": "airport, city, subdivision, country, region, continent or anywhere"
+                                },
+                                "code": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": null
+                                },
+                                "country": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": null
+                                },
+                                "matched_by": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "example": "anywhere",
+                                  "description": "id, code, name, top_hit or anywhere"
+                                },
+                                "alternatives": {
+                                  "type": [
+                                    "array",
+                                    "null"
+                                  ],
+                                  "description": "Other places with the same exact name; pass one's id to pick it.",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "Subdivision:GA_US"
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "Georgia"
+                                      },
+                                      "type": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "subdivision"
+                                      },
+                                      "code": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "GA"
+                                      },
+                                      "parent": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "United States"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "date_from": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "example": "2026-12-10"
+                            },
+                            "date_to": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "example": "2026-12-10"
+                            },
+                            "return_from": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "example": null
+                            },
+                            "return_to": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "example": null
+                            },
+                            "trip_type": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "example": "oneway"
+                            },
+                            "min_price": {
+                              "type": [
+                                "number",
+                                "null"
+                              ],
+                              "example": null
+                            },
+                            "max_price": {
+                              "type": [
+                                "number",
+                                "null"
+                              ],
+                              "example": null
+                            },
+                            "max_stops": {
+                              "type": [
+                                "integer",
+                                "null"
+                              ],
+                              "example": null
+                            },
+                            "passengers": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "properties": {
+                                "adults": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "example": 1
+                                },
+                                "children": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "example": 0
+                                },
+                                "infants": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "example": 0
+                                }
+                              }
+                            },
+                            "sort": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "example": "PRICE"
+                            },
+                            "currency": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "example": "EUR"
+                            }
+                          }
+                        },
+                        "total": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 89,
+                          "description": "Every destination city of the search."
+                        },
+                        "cap": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 1000
+                        },
+                        "count": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 50
+                        },
+                        "destinations": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "rank": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ],
+                                "example": 1
+                              },
+                              "city": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "example": "Dublin"
+                              },
+                              "city_id": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "example": "dublin_ie"
+                              },
+                              "search_id": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "example": "City:dublin_ie",
+                                "description": "Pass to /search-v2 `to` for every flight to this city."
+                              },
+                              "country": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "code": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "IE"
+                                  },
+                                  "name": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "Ireland"
+                                  }
+                                }
+                              },
+                              "airport": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "example": "Dublin"
+                              },
+                              "airport_code": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "example": "DUB"
+                              },
+                              "price": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "amount": {
+                                    "type": [
+                                      "number",
+                                      "null"
+                                    ],
+                                    "example": 21
+                                  },
+                                  "currency": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "EUR"
+                                  }
+                                }
+                              },
+                              "price_eur": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ],
+                                "example": 21
+                              },
+                              "origin": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "airport": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "London Stansted"
+                                  },
+                                  "code": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "STN"
+                                  },
+                                  "city": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "London"
+                                  },
+                                  "city_id": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "london_gb"
+                                  },
+                                  "country": {
+                                    "type": [
+                                      "object",
+                                      "null"
+                                    ],
+                                    "properties": {
+                                      "code": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "GB"
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "United Kingdom"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "departure": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "local_time": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "2026-12-10T08:45:00"
+                                  },
+                                  "utc_time": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "2026-12-10T08:45:00Z"
+                                  }
+                                }
+                              },
+                              "arrival": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "properties": {
+                                  "local_time": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "2026-12-10T10:05:00"
+                                  },
+                                  "utc_time": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "2026-12-10T10:05:00Z"
+                                  }
+                                }
+                              },
+                              "nights": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ],
+                                "example": null,
+                                "description": "Nights at the destination (round trips only)."
+                              },
+                              "return_departure": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "example": null,
+                                "description": "Local departure time of the return flight (round trips only)."
+                              },
+                              "flight": {
+                                "type": [
+                                  "object",
+                                  "null"
+                                ],
+                                "description": "The destination's cheapest itinerary right now (null when none was found). Its price is the live fare of this itinerary and can be lower than the destination price.",
+                                "properties": {
+                                  "id": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "ItineraryOneWay:eyJwcm92aWRlcnMiOiJLSVdJIi...",
+                                    "description": "Itinerary id: pass to /revalidate before booking."
+                                  },
+                                  "price": {
+                                    "type": [
+                                      "object",
+                                      "null"
+                                    ],
+                                    "properties": {
+                                      "amount": {
+                                        "type": [
+                                          "number",
+                                          "null"
+                                        ],
+                                        "example": 21
+                                      },
+                                      "currency": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "EUR"
+                                      }
+                                    }
+                                  },
+                                  "price_eur": {
+                                    "type": [
+                                      "number",
+                                      "null"
+                                    ],
+                                    "example": 21
+                                  },
+                                  "airlines": {
+                                    "type": [
+                                      "array",
+                                      "null"
+                                    ],
+                                    "description": "Every airline of the itinerary (both legs on a round trip), in flight order.",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "code": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ],
+                                          "example": "FR"
+                                        },
+                                        "name": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ],
+                                          "example": "Ryanair"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "stops": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ],
+                                    "example": 0,
+                                    "description": "Stops on the leg (0 = direct)."
+                                  },
+                                  "duration_minutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ],
+                                    "example": 80,
+                                    "description": "Leg duration, departure to arrival, in minutes."
+                                  },
+                                  "departure_time": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time",
+                                    "example": "2026-12-27T07:25:00+00:00",
+                                    "description": "Local departure time with the airport's UTC offset (ISO 8601)."
+                                  },
+                                  "arrival_time": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "date-time",
+                                    "example": "2026-12-27T09:45:00+01:00",
+                                    "description": "Local arrival time with the airport's UTC offset (ISO 8601)."
+                                  },
+                                  "from_airport": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "STN",
+                                    "description": "IATA code of the departure airport."
+                                  },
+                                  "to_airport": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "example": "HHN",
+                                    "description": "IATA code of the arrival airport."
+                                  },
+                                  "total_duration_minutes": {
+                                    "type": [
+                                      "integer",
+                                      "null"
+                                    ],
+                                    "example": 80,
+                                    "description": "Flying time of the whole trip in minutes (round trips: outbound plus return leg)."
+                                  },
+                                  "booking_url": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ],
+                                    "format": "uri",
+                                    "example": "https://www.kiwi.com/en/booking/?direct=true&locale=en&currency=eur&passengers=1-0-0&token=...",
+                                    "description": "The site's booking page for this itinerary."
+                                  },
+                                  "inbound": {
+                                    "type": [
+                                      "object",
+                                      "null"
+                                    ],
+                                    "description": "The return leg (round trips only).",
+                                    "properties": {
+                                      "airlines": {
+                                        "type": [
+                                          "array",
+                                          "null"
+                                        ],
+                                        "description": "Every airline of the leg, in flight order.",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "code": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ],
+                                              "example": "FR"
+                                            },
+                                            "name": {
+                                              "type": [
+                                                "string",
+                                                "null"
+                                              ],
+                                              "example": "Ryanair"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "stops": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ],
+                                        "example": 0,
+                                        "description": "Stops on the leg (0 = direct)."
+                                      },
+                                      "duration_minutes": {
+                                        "type": [
+                                          "integer",
+                                          "null"
+                                        ],
+                                        "example": 70,
+                                        "description": "Leg duration, departure to arrival, in minutes."
+                                      },
+                                      "departure_time": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "format": "date-time",
+                                        "example": "2027-01-03T09:45:00+01:00",
+                                        "description": "Local departure time with the airport's UTC offset (ISO 8601)."
+                                      },
+                                      "arrival_time": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "format": "date-time",
+                                        "example": "2027-01-03T10:55:00+00:00",
+                                        "description": "Local arrival time with the airport's UTC offset (ISO 8601)."
+                                      },
+                                      "from_airport": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "HHN",
+                                        "description": "IATA code of the departure airport."
+                                      },
+                                      "to_airport": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ],
+                                        "example": "STN",
+                                        "description": "IATA code of the arrival airport."
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "with_flight": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 87,
+                          "description": "Destinations whose cheapest flight was found (the rest have flight: null)."
+                        },
+                        "lookups_failed": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 0,
+                          "description": "Destinations whose flight lookup failed this time (flight: null)."
+                        }
+                      }
+                    },
+                    "cached": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ],
+                      "example": false
+                    },
+                    "source": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "example": "kiwi:graphql"
+                    },
+                    "pagination": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "properties": {
+                        "total": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 87
+                        },
+                        "limit": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 50
+                        },
+                        "offset": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 0
+                        },
+                        "count": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "example": 50
+                        },
+                        "has_more": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ],
+                          "example": true
+                        },
+                        "next_cursor": {
+                          "$ref": "#/components/schemas/NextCursor"
+                        }
+                      }
+                    },
+                    "fetched_at": {
+                      "$ref": "#/components/schemas/FetchedAt"
+                    },
+                    "age": {
+                      "$ref": "#/components/schemas/Age"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/CreditLimitReached"
+          },
+          "403": {
+            "$ref": "#/components/responses/AccountSuspended"
+          },
+          "410": {
+            "$ref": "#/components/responses/CursorExpired"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "502": {
+            "$ref": "#/components/responses/UpstreamFailed"
+          }
+        }
+      }
+    },
     "/places": {
       "get": {
         "operationId": "places",
@@ -1667,6 +3296,12 @@
                 "description": "Seconds until the window starts again.",
                 "schema": {
                   "type": "integer"
+                }
+              },
+              "x-maviapi-unknown-params": {
+                "description": "Query params this endpoint does not take, comma separated; they were ignored. Send `x-maviapi-strict: 1` to get a free `400 unknown_param` instead.",
+                "schema": {
+                  "type": "string"
                 }
               },
               "Age": {
@@ -2044,6 +3679,12 @@
                   "type": "integer"
                 }
               },
+              "x-maviapi-unknown-params": {
+                "description": "Query params this endpoint does not take, comma separated; they were ignored. Send `x-maviapi-strict: 1` to get a free `400 unknown_param` instead.",
+                "schema": {
+                  "type": "string"
+                }
+              },
               "Age": {
                 "description": "Seconds since the data was read from the site, as the body's `age`.",
                 "schema": {
@@ -2414,6 +4055,12 @@
                   "type": "integer"
                 }
               },
+              "x-maviapi-unknown-params": {
+                "description": "Query params this endpoint does not take, comma separated; they were ignored. Send `x-maviapi-strict: 1` to get a free `400 unknown_param` instead.",
+                "schema": {
+                  "type": "string"
+                }
+              },
               "Age": {
                 "description": "Seconds since the data was read from the site, as the body's `age`.",
                 "schema": {
@@ -2729,6 +4376,12 @@
                 "description": "Seconds until the window starts again.",
                 "schema": {
                   "type": "integer"
+                }
+              },
+              "x-maviapi-unknown-params": {
+                "description": "Query params this endpoint does not take, comma separated; they were ignored. Send `x-maviapi-strict: 1` to get a free `400 unknown_param` instead.",
+                "schema": {
+                  "type": "string"
                 }
               },
               "Age": {
@@ -3670,6 +5323,12 @@
                   "type": "integer"
                 }
               },
+              "x-maviapi-unknown-params": {
+                "description": "Query params this endpoint does not take, comma separated; they were ignored. Send `x-maviapi-strict: 1` to get a free `400 unknown_param` instead.",
+                "schema": {
+                  "type": "string"
+                }
+              },
               "Age": {
                 "description": "Seconds since the data was read from the site, as the body's `age`.",
                 "schema": {
@@ -3919,7 +5578,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "2026-12-26"
+            "example": "2026-12-27"
           },
           {
             "name": "return_date",
@@ -3929,7 +5588,7 @@
             "schema": {
               "type": "string"
             },
-            "example": "2027-01-02"
+            "example": "2027-01-03"
           },
           {
             "name": "adults",
@@ -4060,6 +5719,12 @@
                 "description": "Seconds until the window starts again.",
                 "schema": {
                   "type": "integer"
+                }
+              },
+              "x-maviapi-unknown-params": {
+                "description": "Query params this endpoint does not take, comma separated; they were ignored. Send `x-maviapi-strict: 1` to get a free `400 unknown_param` instead.",
+                "schema": {
+                  "type": "string"
                 }
               },
               "Age": {
@@ -5204,6 +6869,12 @@
                 "description": "Seconds until the window starts again.",
                 "schema": {
                   "type": "integer"
+                }
+              },
+              "x-maviapi-unknown-params": {
+                "description": "Query params this endpoint does not take, comma separated; they were ignored. Send `x-maviapi-strict: 1` to get a free `400 unknown_param` instead.",
+                "schema": {
+                  "type": "string"
                 }
               },
               "Age": {
@@ -6593,6 +8264,12 @@
                 "description": "Seconds until the window starts again.",
                 "schema": {
                   "type": "integer"
+                }
+              },
+              "x-maviapi-unknown-params": {
+                "description": "Query params this endpoint does not take, comma separated; they were ignored. Send `x-maviapi-strict: 1` to get a free `400 unknown_param` instead.",
+                "schema": {
+                  "type": "string"
                 }
               },
               "Age": {
@@ -8067,7 +9744,7 @@
     },
     "responses": {
       "BadRequest": {
-        "description": "A parameter is missing or cannot be used.",
+        "description": "A parameter is missing or cannot be used (`bad_request`), or, with the `x-maviapi-strict: 1` request header, a query param the operation does not take was sent (`unknown_param`, with the names in `params`).",
         "content": {
           "application/json": {
             "schema": {

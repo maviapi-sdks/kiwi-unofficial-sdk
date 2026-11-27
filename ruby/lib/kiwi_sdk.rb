@@ -33,6 +33,25 @@ module KiwiSdk
       @timeout = timeout
     end
 
+    # Airports within a radius of a lat/lon point, nearest first, with distance, city,
+    # country and a popularity hint.
+    #
+    # Parameters:
+    #   lat (number, required): Latitude of the point, in decimal degrees
+    #   lon (number, required): Longitude of the point, in decimal degrees
+    #   radius_km (number): Search radius in km (default 150, max 500)
+    #   include_inactive (string): true also returns airports Kiwi sells no flights from
+    #     (small airfields, military fields). One of: false, true
+    #   limit (integer): Airports per page. The source returns at most the 50 nearest
+    #     airports per call (data.capped); narrow radius_km to stay under it
+    #   offset (integer): Offset within the at most 50 nearest airports of a call
+    #   undefined (string)
+    #   undefined (string)
+    #   undefined (string)
+    def airports_near(**params)
+      get("/airports-near", params, %w[lat lon])
+    end
+
     # Cheapest flight to every destination city from a place, like the site's 'anywhere'
     # search: one row per city with price, airport and times. Narrow by country, region or
     # continent, dates, price and stops; expand attaches full itineraries.
@@ -79,6 +98,52 @@ module KiwiSdk
     #   undefined (string)
     def explore(**params)
       get("/explore", params, %w[from])
+    end
+
+    # Cheapest flight to every destination city from a place, like the site's 'anywhere'
+    # search, with that flight's airlines, stops, duration, local departure and arrival
+    # times and booking link on every row. Same filters and destination fields as
+    # /explore; paged by cursor.
+    #
+    # Parameters:
+    #   from (string, required): Origin. Codes first: a 3-letter code is an airport
+    #     (else a metro city code such as LON), an upper-case 2-letter code a country
+    #     (else a continent such as EU). Then a name of any place type (city, airport,
+    #     subdivision, country, region, continent), case and accent insensitive, or a
+    #     search id from /places-v2 (e.g. 'Airport:CRL', 'Country:TR'). An unclear or
+    #     unknown value answers 400 with candidates
+    #   to (string): Optional broad scope for the destinations: a country, subdivision,
+    #     region or continent (code, name or search id, same rules as from). Omit or
+    #     'anywhere' for every destination
+    #   date_from (string): Start of the departure date window, YYYY-MM-DD. Defaults to
+    #     30 days from today
+    #   date_to (string): End of the departure date window, YYYY-MM-DD (inclusive).
+    #     Defaults to date_from (a single day)
+    #   return_from (string): Start of the return date window, YYYY-MM-DD. Set it for a
+    #     round trip; omit for one-way
+    #   return_to (string): End of the return date window, YYYY-MM-DD (inclusive).
+    #     Defaults to return_from
+    #   min_price (number): Lowest price per destination, in `currency`
+    #   max_price (number): Highest price per destination, in `currency`
+    #   max_stops (integer): Most stops per leg (0 = direct only). Omit for any. One of:
+    #     0, 1, 2, 3
+    #   adults (integer): Adult passengers (1-9)
+    #   children (integer): Child passengers (0-8)
+    #   infants (integer): Infant passengers (at most one per adult)
+    #   sort (string): Order of the cities (and which flight sets the destination
+    #     price): PRICE = cheapest first, POPULARITY = the site's popular destinations
+    #     first. The flight on each row is always that city's cheapest itinerary. One of:
+    #     PRICE, POPULARITY, QUALITY, DURATION, DATE
+    #   currency (string): Price currency (3-letter ISO code); min_price and max_price
+    #     use it too
+    #   limit (integer): Destinations per page (max 200). Every reachable city is
+    #     returned, see pagination.total; walk the rest with cursor
+    #   offset (integer): Pagination offset over every destination city
+    #   undefined (string)
+    #   undefined (string)
+    #   undefined (string)
+    def explore_v2(**params)
+      get("/explore-v2", params, %w[from])
     end
 
     # Search Kiwi locations (city/airport/country/region/subdivision) by name or IATA

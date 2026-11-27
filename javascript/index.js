@@ -29,12 +29,30 @@ export class KiwiClient {
   }
 
   /**
+   * Airports within a radius of a lat/lon point, nearest first, with distance, city,
+   * country and a popularity hint.
+   */
+  airportsNear(params) {
+    return this.request("/airports-near", params, ["lat", "lon"]);
+  }
+
+  /**
    * Cheapest flight to every destination city from a place, like the site's 'anywhere'
    * search: one row per city with price, airport and times. Narrow by country, region or
    * continent, dates, price and stops; expand attaches full itineraries.
    */
   explore(params) {
     return this.request("/explore", params, ["from"]);
+  }
+
+  /**
+   * Cheapest flight to every destination city from a place, like the site's 'anywhere'
+   * search, with that flight's airlines, stops, duration, local departure and arrival
+   * times and booking link on every row. Same filters and destination fields as
+   * /explore; paged by cursor.
+   */
+  exploreV2(params) {
+    return this.request("/explore-v2", params, ["from"]);
   }
 
   /**

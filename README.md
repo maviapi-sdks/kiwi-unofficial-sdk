@@ -2,7 +2,7 @@
 
 Unofficial **Kiwi.com API** client for Python, JavaScript/TypeScript, Go, PHP, Ruby, Java and C#. Search and compare flights on Kiwi.com — itineraries with live prices, airlines, routes and departure/arrival times, plus location and route discovery.
 
-- **9 endpoints**, each returning JSON, with one method per endpoint in every language.
+- **11 endpoints**, each returning JSON, with one method per endpoint in every language.
 - **Works with no setup.** With no key, a client uses a shared demo key (30 requests a minute and 300 a day per network).
 - **Your own key lifts the limit.** [Create a free key](https://maviapi.com/sign-up?utm_source=github&utm_medium=readme&utm_campaign=sdk-kiwi): a 7-day trial with 5,000 credits, no card.
 - **Kept working.** The API is hosted by [maviapi](https://maviapi.com/apis/kiwi?utm_source=github&utm_medium=readme&utm_campaign=sdk-kiwi), which monitors it and repairs it when the website changes.
@@ -152,7 +152,9 @@ Console.WriteLine(result);
 
 | Endpoint | What it returns | Credits per call |
 |---|---|---|
+| [`GET /airports-near`](#get-airports-near) | Airports within a radius of a lat/lon point, nearest first, with distance, city, country and a popularity hint. | 1 |
 | [`GET /explore`](#get-explore) | Cheapest flight to every destination city from a place, like the site's 'anywhere' search: one row per city with price, airport and times. | 1 |
+| [`GET /explore-v2`](#get-explore-v2) | Cheapest flight to every destination city from a place, like the site's 'anywhere' search, with that flight's airlines, stops, duration, local departure and arrival times and booking link on every row. | 1 |
 | [`GET /places`](#get-places) | Search Kiwi locations (city/airport/country/region/subdivision) by name or IATA code. | 1 |
 | [`GET /places-v2`](#get-places-v2) | Search Kiwi locations of every type by name or code, with an optional type filter. | 1 |
 | [`GET /places/{id}`](#get-placesid) | One Kiwi location by id or code: name, type, codes, city, country, region, continent, time zone, population and coordinates. | 1 |
@@ -174,7 +176,7 @@ A request the API answers with an error status raises an `ApiError` (in Go, retu
 
 | Status | Code | Meaning |
 |---|---|---|
-| 400 | `bad_request` | A parameter is missing or cannot be used. |
+| 400 | `bad_request` | A parameter is missing or cannot be used (`bad_request`), or, with the `x-maviapi-strict: 1` request header, a query param the operation does not take was sent (`unknown_param`, with the names in `params`). |
 | 401 | `missing_api_key` | No API key was sent, or the key is invalid or revoked (`missing_api_key`, `invalid_api_key`). |
 | 402 | `credit_limit_reached` | The plan's credits for this period are used up. |
 | 403 | `account_banned` | The account that owns the key is suspended. |
@@ -184,7 +186,84 @@ A request the API answers with an error status raises an `ApiError` (in Go, retu
 
 ## Endpoint reference
 
-Base URL: `https://api.maviapi.com/v1/sites/kiwi`. API version 2026-11-26. The same contract is in [`openapi.json`](openapi.json).
+Base URL: `https://api.maviapi.com/v1/sites/kiwi`. API version 2026-11-27. The same contract is in [`openapi.json`](openapi.json).
+
+### `GET /airports-near`
+
+Airports within a radius of a lat/lon point, nearest first, with distance, city, country and a popularity hint.
+
+Methods: `airports_near` (Python, Ruby) · `airportsNear` (JavaScript/TypeScript, PHP, Java) · `AirportsNear` (Go) · `AirportsNearAsync` (C#)
+
+Parameters:
+
+- `lat` (number, required): Latitude of the point, in decimal degrees. Example: `51.5`.
+- `lon` (number, required): Longitude of the point, in decimal degrees. Example: `-0.12`.
+- `radius_km` (number, optional): Search radius in km (default 150, max 500). Example: `50`.
+- `include_inactive` (string, optional): true also returns airports Kiwi sells no flights from (small airfields, military fields). One of: `false`, `true`. Example: `false`.
+- `limit` (integer, optional): Airports per page. The source returns at most the 50 nearest airports per call (data.capped); narrow radius_km to stay under it. Example: `50`.
+- `offset` (integer, optional): Offset within the at most 50 nearest airports of a call. Example: `0`.
+- `undefined` (string, optional)
+- `undefined` (string, optional)
+- `undefined` (string, optional)
+
+<details>
+<summary>Example response</summary>
+
+```json
+{
+  "data": {
+    "point": {
+      "lat": 51.5,
+      "lon": -0.12
+    },
+    "radius_km": 150,
+    "include_inactive": false,
+    "total": 8,
+    "cap": 50,
+    "capped": false,
+    "airports": [
+      {
+        "code": "LHR",
+        "id": "LHR",
+        "search_id": "Airport:LHR",
+        "icao": "EGLL",
+        "name": "Heathrow",
+        "city": {
+          "id": "london_gb",
+          "name": "London"
+        },
+        "country": {
+          "code": "GB",
+          "name": "United Kingdom"
+        },
+        "timezone": "Europe/London",
+        "coordinates": {
+          "lat": 51.4775,
+          "lon": -0.461389
+        },
+        "distance_km": 23.7,
+        "popularity": 4458934,
+        "global_rank": 11,
+        "active": true
+      }
+    ]
+  },
+  "cached": false,
+  "source": "kiwi:locations",
+  "pagination": {
+    "total": 8,
+    "limit": 50,
+    "offset": 0,
+    "count": 8,
+    "has_more": false,
+    "next_cursor": null
+  },
+  "fetched_at": null,
+  "age": null
+}
+```
+
+</details>
 
 ### `GET /explore`
 
@@ -428,6 +507,191 @@ Parameters:
   "source": "kiwi:graphql",
   "pagination": {
     "total": 192,
+    "limit": 50,
+    "offset": 0,
+    "count": 50,
+    "has_more": true,
+    "next_cursor": null
+  },
+  "fetched_at": null,
+  "age": null
+}
+```
+
+</details>
+
+### `GET /explore-v2`
+
+Cheapest flight to every destination city from a place, like the site's 'anywhere' search, with that flight's airlines, stops, duration, local departure and arrival times and booking link on every row. Same filters and destination fields as /explore; paged by cursor.
+
+Methods: `explore_v2` (Python, Ruby) · `exploreV2` (JavaScript/TypeScript, PHP, Java) · `ExploreV2` (Go) · `ExploreV2Async` (C#)
+
+Parameters:
+
+- `from` (string, required): Origin. Codes first: a 3-letter code is an airport (else a metro city code such as LON), an upper-case 2-letter code a country (else a continent such as EU). Then a name of any place type (city, airport, subdivision, country, region, continent), case and accent insensitive, or a search id from /places-v2 (e.g. 'Airport:CRL', 'Country:TR'). An unclear or unknown value answers 400 with candidates. Example: `London`.
+- `to` (string, optional): Optional broad scope for the destinations: a country, subdivision, region or continent (code, name or search id, same rules as from). Omit or 'anywhere' for every destination. Example: `Portugal`.
+- `date_from` (string, optional): Start of the departure date window, YYYY-MM-DD. Defaults to 30 days from today. Example: `2027-03-10`.
+- `date_to` (string, optional): End of the departure date window, YYYY-MM-DD (inclusive). Defaults to date_from (a single day). Example: `2027-03-11`.
+- `return_from` (string, optional): Start of the return date window, YYYY-MM-DD. Set it for a round trip; omit for one-way. Example: `2027-03-17`.
+- `return_to` (string, optional): End of the return date window, YYYY-MM-DD (inclusive). Defaults to return_from. Example: `2027-03-18`.
+- `min_price` (number, optional): Lowest price per destination, in `currency`. Example: `100`.
+- `max_price` (number, optional): Highest price per destination, in `currency`. Example: `500`.
+- `max_stops` (integer, optional): Most stops per leg (0 = direct only). Omit for any. One of: `0`, `1`, `2`, `3`. Example: `0`.
+- `adults` (integer, optional): Adult passengers (1-9). Example: `2`.
+- `children` (integer, optional): Child passengers (0-8). Example: `1`.
+- `infants` (integer, optional): Infant passengers (at most one per adult). Example: `1`.
+- `sort` (string, optional): Order of the cities (and which flight sets the destination price): PRICE = cheapest first, POPULARITY = the site's popular destinations first. The flight on each row is always that city's cheapest itinerary. One of: `PRICE`, `POPULARITY`, `QUALITY`, `DURATION`, `DATE`. Example: `PRICE`.
+- `currency` (string, optional): Price currency (3-letter ISO code); min_price and max_price use it too. Example: `usd`.
+- `limit` (integer, optional): Destinations per page (max 200). Every reachable city is returned, see pagination.total; walk the rest with cursor. Example: `50`.
+- `offset` (integer, optional): Pagination offset over every destination city. Example: `0`.
+- `undefined` (string, optional)
+- `undefined` (string, optional)
+- `undefined` (string, optional)
+
+<details>
+<summary>Example response</summary>
+
+```json
+{
+  "data": {
+    "search": {
+      "from": {
+        "input": "London",
+        "id": "City:london_gb",
+        "name": "London",
+        "type": "city",
+        "code": "LON",
+        "country": "GB",
+        "matched_by": "name",
+        "alternatives": [
+          {
+            "id": "Subdivision:GA_US",
+            "name": "Georgia",
+            "type": "subdivision",
+            "code": "GA",
+            "parent": "United States"
+          }
+        ]
+      },
+      "to": {
+        "input": "anywhere",
+        "id": null,
+        "name": "Anywhere",
+        "type": "anywhere",
+        "code": null,
+        "country": null,
+        "matched_by": "anywhere",
+        "alternatives": [
+          {
+            "id": "Subdivision:GA_US",
+            "name": "Georgia",
+            "type": "subdivision",
+            "code": "GA",
+            "parent": "United States"
+          }
+        ]
+      },
+      "date_from": "2026-12-10",
+      "date_to": "2026-12-10",
+      "return_from": null,
+      "return_to": null,
+      "trip_type": "oneway",
+      "min_price": null,
+      "max_price": null,
+      "max_stops": null,
+      "passengers": {
+        "adults": 1,
+        "children": 0,
+        "infants": 0
+      },
+      "sort": "PRICE",
+      "currency": "EUR"
+    },
+    "total": 89,
+    "cap": 1000,
+    "count": 50,
+    "destinations": [
+      {
+        "rank": 1,
+        "city": "Dublin",
+        "city_id": "dublin_ie",
+        "search_id": "City:dublin_ie",
+        "country": {
+          "code": "IE",
+          "name": "Ireland"
+        },
+        "airport": "Dublin",
+        "airport_code": "DUB",
+        "price": {
+          "amount": 21,
+          "currency": "EUR"
+        },
+        "price_eur": 21,
+        "origin": {
+          "airport": "London Stansted",
+          "code": "STN",
+          "city": "London",
+          "city_id": "london_gb",
+          "country": {
+            "code": "GB",
+            "name": "United Kingdom"
+          }
+        },
+        "departure": {
+          "local_time": "2026-12-10T08:45:00",
+          "utc_time": "2026-12-10T08:45:00Z"
+        },
+        "arrival": {
+          "local_time": "2026-12-10T10:05:00",
+          "utc_time": "2026-12-10T10:05:00Z"
+        },
+        "nights": null,
+        "return_departure": null,
+        "flight": {
+          "id": "ItineraryOneWay:eyJwcm92aWRlcnMiOiJLSVdJIi...",
+          "price": {
+            "amount": 21,
+            "currency": "EUR"
+          },
+          "price_eur": 21,
+          "airlines": [
+            {
+              "code": "FR",
+              "name": "Ryanair"
+            }
+          ],
+          "stops": 0,
+          "duration_minutes": 80,
+          "departure_time": "2026-12-27T07:25:00+00:00",
+          "arrival_time": "2026-12-27T09:45:00+01:00",
+          "from_airport": "STN",
+          "to_airport": "HHN",
+          "total_duration_minutes": 80,
+          "booking_url": "https://www.kiwi.com/en/booking/?direct=true&locale=en&currency=eur&passengers=1-0-0&token=...",
+          "inbound": {
+            "airlines": [
+              {
+                "code": "FR",
+                "name": "Ryanair"
+              }
+            ],
+            "stops": 0,
+            "duration_minutes": 70,
+            "departure_time": "2027-01-03T09:45:00+01:00",
+            "arrival_time": "2027-01-03T10:55:00+00:00",
+            "from_airport": "HHN",
+            "to_airport": "STN"
+          }
+        }
+      }
+    ],
+    "with_flight": 87,
+    "lookups_failed": 0
+  },
+  "cached": false,
+  "source": "kiwi:graphql",
+  "pagination": {
+    "total": 87,
     "limit": 50,
     "offset": 0,
     "count": 50,
@@ -854,8 +1118,8 @@ Parameters:
 
 - `from` (string, required): Origin: place name, IATA code or Kiwi id (e.g. 'london', 'LHR', 'City:london_gb'). Example: `london`.
 - `to` (string, required): Destination: place name, IATA code or Kiwi id. Example: `istanbul`.
-- `date` (string, optional): Outbound departure date, YYYY-MM-DD. Defaults to ~30 days out. Example: `2026-12-26`.
-- `return_date` (string, optional): Optional inbound date, YYYY-MM-DD. Set it for a round trip; omit for one-way. Example: `2027-01-02`.
+- `date` (string, optional): Outbound departure date, YYYY-MM-DD. Defaults to ~30 days out. Example: `2026-12-27`.
+- `return_date` (string, optional): Optional inbound date, YYYY-MM-DD. Set it for a round trip; omit for one-way. Example: `2027-01-03`.
 - `adults` (integer, optional): Adult passengers (1-9). Example: `1`.
 - `children` (integer, optional): Child passengers (0-9). Example: `0`.
 - `infants` (integer, optional): Infant passengers (0-9). Example: `0`.
@@ -1511,7 +1775,7 @@ Parameters:
 - [maviapi MCP server](https://maviapi.com/docs#mcp): the same API as tools for Claude, Cursor and other AI agents.
 - [All maviapi APIs](https://maviapi.com/apis?utm_source=github&utm_medium=readme&utm_campaign=sdk-kiwi). Need a website that is not there? [Ask for it](https://maviapi.com/?utm_source=github&utm_medium=readme&utm_campaign=sdk-kiwi) and get an API for it.
 
-Other unofficial SDKs: [Airbnb](https://github.com/maviapi-sdks/airbnb-unofficial-sdk) · [Booking.com](https://github.com/maviapi-sdks/booking-unofficial-sdk) · [GetYourGuide](https://github.com/maviapi-sdks/getyourguide-unofficial-sdk) · [Google Search](https://github.com/maviapi-sdks/google-search-unofficial-sdk) · [MarineTraffic](https://github.com/maviapi-sdks/marinetraffic-unofficial-sdk) · [Speedtest](https://github.com/maviapi-sdks/speedtest-unofficial-sdk) · [Trainline](https://github.com/maviapi-sdks/trainline-unofficial-sdk) · [Trendyol](https://github.com/maviapi-sdks/trendyol-unofficial-sdk) · [Tripadvisor](https://github.com/maviapi-sdks/tripadvisor-unofficial-sdk) · [Yemeksepeti](https://github.com/maviapi-sdks/yemeksepeti-unofficial-sdk)
+Other unofficial SDKs: [Airbnb](https://github.com/maviapi-sdks/airbnb-unofficial-sdk) · [Booking.com](https://github.com/maviapi-sdks/booking-unofficial-sdk) · [FlightList](https://github.com/maviapi-sdks/flightlist-unofficial-sdk) · [GetYourGuide](https://github.com/maviapi-sdks/getyourguide-unofficial-sdk) · [Google Search](https://github.com/maviapi-sdks/google-search-unofficial-sdk) · [MarineTraffic](https://github.com/maviapi-sdks/marinetraffic-unofficial-sdk) · [Speedtest](https://github.com/maviapi-sdks/speedtest-unofficial-sdk) · [Trainline](https://github.com/maviapi-sdks/trainline-unofficial-sdk) · [Trendyol](https://github.com/maviapi-sdks/trendyol-unofficial-sdk) · [Tripadvisor](https://github.com/maviapi-sdks/tripadvisor-unofficial-sdk) · [Yemeksepeti](https://github.com/maviapi-sdks/yemeksepeti-unofficial-sdk)
 
 ## License
 
