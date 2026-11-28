@@ -29,100 +29,126 @@ export class KiwiClient {
   }
 
   /**
-   * Airports within a radius of a lat/lon point, nearest first, with distance, city,
-   * country and a popularity hint.
+   * Airports within a radius of a point, nearest first, with distance, city, country,
+   * time zone and Kiwi popularity.
+   *
+   * Each successful request uses 5 credits.
    */
-  airportsNear(params) {
-    return this.request("/airports-near", params, ["lat", "lon"]);
+  airportsNear(params = {}) {
+    return this.request("/airports-near", params, []);
   }
 
   /**
-   * Cheapest flight to every destination city from a place, like the site's 'anywhere'
-   * search: one row per city with price, airport and times. Narrow by country, region or
-   * continent, dates, price and stops; expand attaches full itineraries.
+   * The cheapest flight to every destination city from a place, like kiwi.com's
+   * 'anywhere' search: one row per city with price, origin and destination airports,
+   * local and UTC times and, for round trips, nights and return date. expand attaches
+   * the top 3 full itineraries for the first N cities.
+   *
+   * Each successful request uses 5 credits.
    */
-  explore(params) {
-    return this.request("/explore", params, ["from"]);
+  explore(params = {}) {
+    return this.request("/explore", params, []);
   }
 
   /**
-   * Cheapest flight to every destination city from a place, like the site's 'anywhere'
-   * search, with that flight's airlines, stops, duration, local departure and arrival
-   * times and booking link on every row. Same filters and destination fields as
-   * /explore; paged by cursor.
+   * The cheapest flight to every destination city from a place, like kiwi.com's
+   * 'anywhere' search, with that flight on every row: airlines, stops, duration, local
+   * and UTC departure and arrival, segments and booking link (and the return leg for
+   * round trips). Same filters and destination fields as /explore; at most the first 200
+   * cities.
+   *
+   * Each successful request uses 5 credits.
    */
-  exploreV2(params) {
-    return this.request("/explore-v2", params, ["from"]);
+  exploreV2(params = {}) {
+    return this.request("/explore-v2", params, []);
   }
 
   /**
-   * Search Kiwi locations (city/airport/country/region/subdivision) by name or IATA
-   * code. Params: q, type, limit/offset.
+   * Kiwi locations of one type matching a name or IATA code, best match first.
+   *
+   * Each successful request uses 5 credits.
    */
   places(params = {}) {
     return this.request("/places", params, []);
   }
 
   /**
-   * Search Kiwi locations of every type by name or code, with an optional type filter.
-   * Every row carries its country (airports included) and a search_id for /search-v2.
+   * Kiwi locations of every type matching a name or code, best match first; each row has
+   * its country and a search_id for the flight searches.
+   *
+   * Each successful request uses 5 credits.
    */
-  placesV2(params) {
-    return this.request("/places-v2", params, ["q"]);
+  placesV2(params = {}) {
+    return this.request("/places-v2", params, []);
   }
 
   /**
    * One Kiwi location by id or code: name, type, codes, city, country, region,
    * continent, time zone, population and coordinates.
+   *
+   * Each successful request uses 5 credits.
    */
   placesById(params) {
     return this.request("/places/{id}", params, ["id"]);
   }
 
   /**
-   * Check one itinerary from /search-v2 or /search-v3 again before booking: whether it
-   * is still available, its current price for the given passengers and currency, a fresh
-   * booking link, fetched_at and expires_at. Never cached.
+   * Checks one itinerary from /search, /search-v2 or /search-v3 again before booking:
+   * whether the same flights are still on sale, their current total price for these
+   * passengers and currency, a fresh booking link and segments, fetched_at and
+   * expires_at. Never cached.
+   *
+   * Each successful request uses 5 credits.
    */
-  revalidate(params) {
-    return this.request("/revalidate", params, ["id"]);
+  revalidate(params = {}) {
+    return this.request("/revalidate", params, []);
   }
 
   /**
-   * List published city-pair routes from Kiwi route sitemaps. Params: page,
-   * limit/offset.
+   * Published city-pair routes (cheap-flights pages) from one of Kiwi's route sitemaps,
+   * in sitemap order.
+   *
+   * Each successful request uses 5 credits.
    */
   routes(params = {}) {
     return this.request("/routes", params, []);
   }
 
   /**
-   * Flight search: itineraries with prices, airlines, routes and departure/arrival
-   * times. from/to accept place names, IATA codes or Kiwi ids; date/return_date,
-   * adults/children/infants, cabin, sort, currency, limit/offset.
+   * Flight itineraries for one departure day (and optional return day): prices,
+   * airlines, segments, local and UTC times and booking links, as kiwi.com ranks them
+   * (at most 25 per search).
+   *
+   * Each successful request uses 5 credits.
    */
-  search(params) {
-    return this.request("/search", params, ["from", "to"]);
+  search(params = {}) {
+    return this.request("/search", params, []);
   }
 
   /**
-   * Flight search with departure and return date windows, a price range and a stop
-   * limit. from/to take codes, names of any place type, countries, regions, continents,
-   * or to=anywhere; unclear values answer 400 with candidates. At most 50 itineraries
-   * per search: narrow it to reach others.
+   * Flight itineraries for departure (and optional return) date windows, with prices,
+   * segments, airlines, local and UTC times and booking links. The list holds at most
+   * cap (50) itineraries, in the order of sort; capped is true when kiwi.com had more
+   * for the search than were returned, so narrow the search (dates, places, price,
+   * stops) to see the rest.
+   *
+   * Each successful request uses 5 credits.
    */
-  searchV2(params) {
-    return this.request("/search-v2", params, ["from", "to"]);
+  searchV2(params = {}) {
+    return this.request("/search-v2", params, []);
   }
 
   /**
-   * Flight search with date windows plus several origins and destinations
-   * (from=BRU,CRL), local departure and arrival time windows, and every itinerary the
-   * search has, paged by cursor, with total_estimate. Each itinerary names the origin
-   * and destination it matched and when its price expires.
+   * Every itinerary kiwi.com has for up to 3 origins and 3 destinations over departure
+   * (and return) date windows, with local departure and arrival time windows. Each
+   * itinerary names the origin and destination it matched (origin, destination), its
+   * fetch time and when its quoted price expires; total_estimate counts them and
+   * total_exact says whether none of the underlying searches was cut off.
+   *
+   * Each successful request uses 5 credits.
    */
-  searchV3(params) {
-    return this.request("/search-v3", params, ["from", "to"]);
+  searchV3(params = {}) {
+    return this.request("/search-v3", params, []);
   }
 
   /** GET one endpoint path. Parameters named in the path go there, the rest in the query. */

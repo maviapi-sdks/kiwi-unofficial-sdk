@@ -33,128 +33,127 @@ module KiwiSdk
       @timeout = timeout
     end
 
-    # Airports within a radius of a lat/lon point, nearest first, with distance, city,
-    # country and a popularity hint.
+    # Airports within a radius of a point, nearest first, with distance, city, country,
+    # time zone and Kiwi popularity.
+    #
+    # Each successful request uses 5 credits.
     #
     # Parameters:
-    #   lat (number, required): Latitude of the point, in decimal degrees
-    #   lon (number, required): Longitude of the point, in decimal degrees
-    #   radius_km (number): Search radius in km (default 150, max 500)
-    #   include_inactive (string): true also returns airports Kiwi sells no flights from
-    #     (small airfields, military fields). One of: false, true
-    #   limit (integer): Airports per page. The source returns at most the 50 nearest
-    #     airports per call (data.capped); narrow radius_km to stay under it
-    #   offset (integer): Offset within the at most 50 nearest airports of a call
+    #   lat (number): latitude of the point, decimal degrees
+    #   lon (number): longitude of the point, decimal degrees
+    #   radius_km (number): search radius in km (default 150, max 500)
+    #   include_inactive (string): "true" also returns airports Kiwi sells no flights
+    #     from (small airfields, military fields). One of: false, true
+    #   limit (integer): Rows in one page, 1 to 50 (default 50)
+    #   offset (integer): Rows to skip before the page starts (default 0)
     #   undefined (string)
     #   undefined (string)
     #   undefined (string)
     def airports_near(**params)
-      get("/airports-near", params, %w[lat lon])
+      get("/airports-near", params, %w[])
     end
 
-    # Cheapest flight to every destination city from a place, like the site's 'anywhere'
-    # search: one row per city with price, airport and times. Narrow by country, region or
-    # continent, dates, price and stops; expand attaches full itineraries.
+    # The cheapest flight to every destination city from a place, like kiwi.com's
+    # 'anywhere' search: one row per city with price, origin and destination airports,
+    # local and UTC times and, for round trips, nights and return date. expand attaches
+    # the top 3 full itineraries for the first N cities.
+    #
+    # Each successful request uses 5 credits.
     #
     # Parameters:
-    #   from (string, required): Origin. Codes first: a 3-letter code is an airport
-    #     (else a metro city code such as LON), an upper-case 2-letter code a country
-    #     (else a continent such as EU). Then a name of any place type (city, airport,
-    #     subdivision, country, region, continent), case and accent insensitive, or a
-    #     search id from /places-v2 (e.g. 'Airport:CRL', 'Country:TR'). An unclear or
-    #     unknown value answers 400 with candidates
-    #   to (string): Optional broad scope for the destinations: a country, subdivision,
-    #     region or continent (code, name or search id, same rules as from). Omit or
-    #     'anywhere' for every destination
-    #   date_from (string): Start of the departure date window, YYYY-MM-DD. Defaults to
-    #     30 days from today
-    #   date_to (string): End of the departure date window, YYYY-MM-DD (inclusive).
-    #     Defaults to date_from (a single day)
-    #   return_from (string): Start of the return date window, YYYY-MM-DD. Set it for a
-    #     round trip; omit for one-way
-    #   return_to (string): End of the return date window, YYYY-MM-DD (inclusive).
-    #     Defaults to return_from
-    #   min_price (number): Lowest price per destination, in `currency`
-    #   max_price (number): Highest price per destination, in `currency`
-    #   max_stops (integer): Most stops per leg (0 = direct only). Omit for any. One of:
-    #     0, 1, 2, 3
-    #   adults (integer): Adult passengers (1-9)
-    #   children (integer): Child passengers (0-8)
-    #   infants (integer): Infant passengers (at most one per adult)
-    #   sort (string): Which flight represents each city and the order of the cities:
-    #     PRICE = cheapest first, POPULARITY = the site's popular destinations first (the
-    #     set differs a little per sort). One of: PRICE, POPULARITY, QUALITY, DURATION,
-    #     DATE
-    #   currency (string): Price currency (3-letter ISO code); min_price and max_price
+    #   from (string): origin. A 3-letter upper-case code is an airport (else a metro
+    #     city code such as LON), an upper-case 2-letter code a country (else a continent
+    #     such as EU); otherwise a name of any place type, case and accent insensitive, or
+    #     a search id from /places-v2 (Airport:CRL, Country:TR). Unclear or unknown values
+    #     answer 400 with candidates
+    #   to (string): optional broad scope for the destinations: a country, subdivision,
+    #     region or continent (code, name or search id); 'anywhere' for every destination
+    #   date_from (string): start of the departure window, YYYY-MM-DD; defaults to 30
+    #     days from today
+    #   date_to (string): end of the departure window, YYYY-MM-DD, inclusive; defaults
+    #     to date_from
+    #   return_from (string): start of the return window, YYYY-MM-DD; set it for a round
+    #     trip, omit for one-way
+    #   return_to (string): end of the return window, YYYY-MM-DD, inclusive; defaults to
+    #     return_from
+    #   min_price (string): lowest price per destination, in currency
+    #   max_price (string): highest price per destination, in currency
+    #   max_stops (string): most stops per leg (0 = direct only); omit for any
+    #   adults (integer): adult passengers (1-9)
+    #   children (integer): child passengers (0-8)
+    #   infants (integer): infant passengers, at most one per adult
+    #   sort (string): which flight represents each city and the order of the cities:
+    #     PRICE (cheapest first), POPULARITY (kiwi.com's popular destinations first),
+    #     QUALITY, DURATION or DATE. The set of cities differs a little per sort. One of:
+    #     PRICE, POPULARITY, QUALITY, DURATION, DATE
+    #   currency (string): price currency, 3-letter ISO code; min_price and max_price
     #     use it too
-    #   expand (integer): Also attach the top 3 itineraries (segments, airlines, booking
-    #     link) for the destinations ranked 1 to N (on whichever page they fall). 0 =
-    #     none. One of: 0, 1, 2, 3, 4, 5
-    #   limit (integer): Destinations per page (max 1000). Every reachable city is
-    #     returned, see pagination.total
-    #   offset (integer): Pagination offset over every destination city
+    #   expand (integer): attach the top 3 itineraries (segments, airlines, booking
+    #     link) to the destinations ranked 1 to N; 0 = none
+    #   limit (integer): Rows in one page, 1 to 1000 (default 50)
+    #   offset (integer): Rows to skip before the page starts (default 0)
     #   undefined (string)
     #   undefined (string)
     #   undefined (string)
     def explore(**params)
-      get("/explore", params, %w[from])
+      get("/explore", params, %w[])
     end
 
-    # Cheapest flight to every destination city from a place, like the site's 'anywhere'
-    # search, with that flight's airlines, stops, duration, local departure and arrival
-    # times and booking link on every row. Same filters and destination fields as
-    # /explore; paged by cursor.
+    # The cheapest flight to every destination city from a place, like kiwi.com's
+    # 'anywhere' search, with that flight on every row: airlines, stops, duration, local
+    # and UTC departure and arrival, segments and booking link (and the return leg for
+    # round trips). Same filters and destination fields as /explore; at most the first 200
+    # cities.
+    #
+    # Each successful request uses 5 credits.
     #
     # Parameters:
-    #   from (string, required): Origin. Codes first: a 3-letter code is an airport
-    #     (else a metro city code such as LON), an upper-case 2-letter code a country
-    #     (else a continent such as EU). Then a name of any place type (city, airport,
-    #     subdivision, country, region, continent), case and accent insensitive, or a
-    #     search id from /places-v2 (e.g. 'Airport:CRL', 'Country:TR'). An unclear or
-    #     unknown value answers 400 with candidates
-    #   to (string): Optional broad scope for the destinations: a country, subdivision,
-    #     region or continent (code, name or search id, same rules as from). Omit or
-    #     'anywhere' for every destination
-    #   date_from (string): Start of the departure date window, YYYY-MM-DD. Defaults to
-    #     30 days from today
-    #   date_to (string): End of the departure date window, YYYY-MM-DD (inclusive).
-    #     Defaults to date_from (a single day)
-    #   return_from (string): Start of the return date window, YYYY-MM-DD. Set it for a
-    #     round trip; omit for one-way
-    #   return_to (string): End of the return date window, YYYY-MM-DD (inclusive).
-    #     Defaults to return_from
-    #   min_price (number): Lowest price per destination, in `currency`
-    #   max_price (number): Highest price per destination, in `currency`
-    #   max_stops (integer): Most stops per leg (0 = direct only). Omit for any. One of:
-    #     0, 1, 2, 3
-    #   adults (integer): Adult passengers (1-9)
-    #   children (integer): Child passengers (0-8)
-    #   infants (integer): Infant passengers (at most one per adult)
-    #   sort (string): Order of the cities (and which flight sets the destination
-    #     price): PRICE = cheapest first, POPULARITY = the site's popular destinations
-    #     first. The flight on each row is always that city's cheapest itinerary. One of:
-    #     PRICE, POPULARITY, QUALITY, DURATION, DATE
-    #   currency (string): Price currency (3-letter ISO code); min_price and max_price
+    #   from (string): origin. A 3-letter upper-case code is an airport (else a metro
+    #     city code such as LON), an upper-case 2-letter code a country (else a continent
+    #     such as EU); otherwise a name of any place type, case and accent insensitive, or
+    #     a search id from /places-v2. Unclear or unknown values answer 400 with
+    #     candidates
+    #   to (string): optional broad scope for the destinations: a country, subdivision,
+    #     region or continent (code, name or search id); 'anywhere' for every destination
+    #   date_from (string): start of the departure window, YYYY-MM-DD; defaults to 30
+    #     days from today
+    #   date_to (string): end of the departure window, YYYY-MM-DD, inclusive; defaults
+    #     to date_from
+    #   return_from (string): start of the return window, YYYY-MM-DD; set it for a round
+    #     trip, omit for one-way
+    #   return_to (string): end of the return window, YYYY-MM-DD, inclusive; defaults to
+    #     return_from
+    #   min_price (string): lowest price per destination, in currency
+    #   max_price (string): highest price per destination, in currency
+    #   max_stops (string): most stops per leg (0 = direct only); omit for any
+    #   adults (integer): adult passengers (1-9)
+    #   children (integer): child passengers (0-8)
+    #   infants (integer): infant passengers, at most one per adult
+    #   sort (string): order of the cities (and which flight sets the destination
+    #     price): PRICE (cheapest first), POPULARITY, QUALITY, DURATION or DATE. The
+    #     flight on each row is that city's cheapest itinerary. One of: PRICE, POPULARITY,
+    #     QUALITY, DURATION, DATE
+    #   currency (string): price currency, 3-letter ISO code; min_price and max_price
     #     use it too
-    #   limit (integer): Destinations per page (max 200). Every reachable city is
-    #     returned, see pagination.total; walk the rest with cursor
-    #   offset (integer): Pagination offset over every destination city
+    #   limit (integer): Rows in one page, 1 to 200 (default 50)
+    #   offset (integer): Rows to skip before the page starts (default 0)
     #   undefined (string)
     #   undefined (string)
     #   undefined (string)
     def explore_v2(**params)
-      get("/explore-v2", params, %w[from])
+      get("/explore-v2", params, %w[])
     end
 
-    # Search Kiwi locations (city/airport/country/region/subdivision) by name or IATA
-    # code. Params: q, type, limit/offset.
+    # Kiwi locations of one type matching a name or IATA code, best match first.
+    #
+    # Each successful request uses 5 credits.
     #
     # Parameters:
-    #   q (string): Search term (place name or IATA code)
-    #   type (string): Location type to search. One of: city, airport, country, region,
-    #     subdivision
-    #   limit (integer): Max places per page
-    #   offset (integer): Pagination offset
+    #   q (string): search term (place name or IATA code)
+    #   type (string): location type to search: city, airport, country, region or
+    #     subdivision. One of: city, airport, country, region, subdivision
+    #   limit (integer): Rows in one page, 1 to 200 (default 50)
+    #   offset (integer): Rows to skip before the page starts (default 0)
     #   undefined (string)
     #   undefined (string)
     #   undefined (string)
@@ -162,62 +161,68 @@ module KiwiSdk
       get("/places", params, %w[])
     end
 
-    # Search Kiwi locations of every type by name or code, with an optional type filter.
-    # Every row carries its country (airports included) and a search_id for /search-v2.
+    # Kiwi locations of every type matching a name or code, best match first; each row has
+    # its country and a search_id for the flight searches.
+    #
+    # Each successful request uses 5 credits.
     #
     # Parameters:
-    #   q (string, required): Place name or code (case and accent insensitive)
-    #   type (string): Optional filter: one type or a comma list of city, airport,
+    #   q (string): place name or code (case and accent insensitive)
+    #   type (string): optional filter, one type or a comma list of city, airport,
     #     country, subdivision, region, continent, autonomous_territory, special,
-    #     tourist_region. Omit to search every type. One of: city, airport, country,
-    #     subdivision, region, continent, autonomous_territory, special, tourist_region
-    #   limit (integer): Places per page (max 1000)
-    #   offset (integer): Pagination offset within the at most 1000 places of a query
-    #     (see data.cap)
+    #     tourist_region. Omit for every type
+    #   limit (integer): Rows in one page, 1 to 1000 (default 50)
+    #   offset (integer): Rows to skip before the page starts (default 0)
     #   undefined (string)
     #   undefined (string)
     #   undefined (string)
     def places_v2(**params)
-      get("/places-v2", params, %w[q])
+      get("/places-v2", params, %w[])
     end
 
     # One Kiwi location by id or code: name, type, codes, city, country, region,
     # continent, time zone, population and coordinates.
     #
+    # Each successful request uses 5 credits.
+    #
     # Parameters:
-    #   id (string, required): A Kiwi location id: an airport code (CRL), a city id
+    #   id (string, required): a Kiwi location id: an airport code (CRL), a city id
     #     (london_gb), a country code (GB), a subdivision (FL_US), a continent (europe),
-    #     or a search id from /places-v2 or /explore (Airport:CRL, City:london_gb)
+    #     or a search id (Airport:CRL, City:london_gb)
     #   undefined (string)
     def places_by_id(**params)
       get("/places/{id}", params, %w[id])
     end
 
-    # Check one itinerary from /search-v2 or /search-v3 again before booking: whether it
-    # is still available, its current price for the given passengers and currency, a fresh
-    # booking link, fetched_at and expires_at. Never cached.
+    # Checks one itinerary from /search, /search-v2 or /search-v3 again before booking:
+    # whether the same flights are still on sale, their current total price for these
+    # passengers and currency, a fresh booking link and segments, fetched_at and
+    # expires_at. Never cached.
+    #
+    # Each successful request uses 5 credits.
     #
     # Parameters:
-    #   id (string, required): The itinerary id (`id`) of a row from /search-v2 or
-    #     /search-v3, one-way or return
-    #   currency (string): Price currency (3-letter ISO code). Pass the currency of the
-    #     search the id came from to compare with quoted_price
-    #   adults (integer): Adult passengers (1-9)
-    #   children (integer): Child passengers (0-8)
-    #   infants (integer): Infant passengers, at most one per adult
+    #   id (string): the itinerary id (`id`) of a search row, one-way or return
+    #   currency (string): price currency, 3-letter ISO code; pass the currency of the
+    #     original search to compare with quoted_price
+    #   adults (integer): adult passengers (1-9)
+    #   children (integer): child passengers (0-8)
+    #   infants (integer): infant passengers, at most one per adult
     #   undefined (string)
     def revalidate(**params)
-      get("/revalidate", params, %w[id])
+      get("/revalidate", params, %w[])
     end
 
-    # List published city-pair routes from Kiwi route sitemaps. Params: page,
-    # limit/offset.
+    # Published city-pair routes (cheap-flights pages) from one of Kiwi's route sitemaps,
+    # in sitemap order.
+    #
+    # Each successful request uses 5 credits.
     #
     # Parameters:
-    #   page (integer): Which route sub-sitemap to read (0-based). Kiwi splits ~50k
+    #   page (integer): which route sitemap to read, 0-based; Kiwi splits about 50k
     #     routes per file across many files
-    #   limit (integer): Max routes per page
-    #   offset (integer): Pagination offset within the sub-sitemap
+    #   limit (integer): Rows in one page, 1 to 200 (default 50)
+    #   offset (integer): Rows to skip before the page starts (default 0)
     #   undefined (string)
     #   undefined (string)
     #   undefined (string)
@@ -225,132 +230,134 @@ module KiwiSdk
       get("/routes", params, %w[])
     end
 
-    # Flight search: itineraries with prices, airlines, routes and departure/arrival
-    # times. from/to accept place names, IATA codes or Kiwi ids; date/return_date,
-    # adults/children/infants, cabin, sort, currency, limit/offset.
+    # Flight itineraries for one departure day (and optional return day): prices,
+    # airlines, segments, local and UTC times and booking links, as kiwi.com ranks them
+    # (at most 25 per search).
+    #
+    # Each successful request uses 5 credits.
     #
     # Parameters:
-    #   from (string, required): Origin: place name, IATA code or Kiwi id (e.g.
-    #     'london', 'LHR', 'City:london_gb')
-    #   to (string, required): Destination: place name, IATA code or Kiwi id
-    #   date (string): Outbound departure date, YYYY-MM-DD. Defaults to ~30 days out
-    #   return_date (string): Optional inbound date, YYYY-MM-DD. Set it for a round
-    #     trip; omit for one-way
-    #   adults (integer): Adult passengers (1-9)
-    #   children (integer): Child passengers (0-9)
-    #   infants (integer): Infant passengers (0-9)
-    #   cabin (string): Cabin class. One of: ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST
-    #   sort (string): Result ordering. One of: QUALITY, PRICE, DURATION
-    #   currency (string): Price currency (ISO code)
-    #   limit (integer): Max itineraries per page
-    #   offset (integer): Pagination offset
+    #   from (string): origin: place name, IATA code or Kiwi id (london, LHR,
+    #     City:london_gb)
+    #   to (string): destination: place name, IATA code or Kiwi id
+    #   date (string): outbound departure date, YYYY-MM-DD; defaults to 30 days from
+    #     today. A past date gives an empty list
+    #   return_date (string): inbound departure date, YYYY-MM-DD; set it for a round
+    #     trip, omit for one-way
+    #   adults (integer): adult passengers (1-9)
+    #   children (integer): child passengers (0-9)
+    #   infants (integer): infant passengers (0-9, at most one per adult)
+    #   cabin (string): cabin class. One of: ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST
+    #   sort (string): result ordering: QUALITY, PRICE or DURATION. One of: QUALITY,
+    #     PRICE, DURATION
+    #   currency (string): price currency (ISO code)
+    #   limit (integer): Rows in one page, 1 to 200 (default 50)
+    #   offset (integer): Rows to skip before the page starts (default 0)
     #   undefined (string)
     #   undefined (string)
     #   undefined (string)
     def search(**params)
-      get("/search", params, %w[from to])
+      get("/search", params, %w[])
     end
 
-    # Flight search with departure and return date windows, a price range and a stop
-    # limit. from/to take codes, names of any place type, countries, regions, continents,
-    # or to=anywhere; unclear values answer 400 with candidates. At most 50 itineraries
-    # per search: narrow it to reach others.
+    # Flight itineraries for departure (and optional return) date windows, with prices,
+    # segments, airlines, local and UTC times and booking links. The list holds at most
+    # cap (50) itineraries, in the order of sort; capped is true when kiwi.com had more
+    # for the search than were returned, so narrow the search (dates, places, price,
+    # stops) to see the rest.
+    #
+    # Each successful request uses 5 credits.
     #
     # Parameters:
-    #   from (string, required): Origin. Codes first: a 3-letter code is an airport
-    #     (else a metro city code such as LON), an upper-case 2-letter code a country
-    #     (else a continent such as EU). Then a name of any place type (city, airport,
-    #     subdivision, country, region, continent), case and accent insensitive, or a
-    #     search id from /places-v2 (e.g. 'Airport:CRL', 'Country:TR'). An unclear or
-    #     unknown value answers 400 with candidates
-    #   to (string, required): Destination, same rules as from, plus 'anywhere' for
-    #     every destination
-    #   date_from (string): Start of the departure date window, YYYY-MM-DD. Defaults to
-    #     30 days from today
-    #   date_to (string): End of the departure date window, YYYY-MM-DD (inclusive).
-    #     Defaults to date_from (a single day)
-    #   return_from (string): Start of the return date window, YYYY-MM-DD. Set it for a
-    #     round trip; omit for one-way
-    #   return_to (string): End of the return date window, YYYY-MM-DD (inclusive).
-    #     Defaults to return_from
-    #   min_price (number): Lowest total price, in `currency`
-    #   max_price (number): Highest total price, in `currency`
-    #   max_stops (integer): Most stops per leg (0 = direct only). Omit for any. One of:
-    #     0, 1, 2, 3
-    #   adults (integer): Adult passengers (1-9)
-    #   children (integer): Child passengers (0-8)
-    #   infants (integer): Infant passengers (at most one per adult)
-    #   cabin (string): Cabin class. One of: ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST
-    #   sort (string): Which 50 itineraries the search keeps, and their order. One of:
+    #   from (string): origin. A 3-letter upper-case code is an airport, searched
+    #     together with the other airports of its metro area as kiwi.com does (IST also
+    #     finds SAW), else a metro city code such as LON; an upper-case 2-letter code a
+    #     country (else a continent such as EU); otherwise a name of any place type (city,
+    #     airport, subdivision, country, region, continent), case and accent insensitive,
+    #     or a search id from /places-v2 (Airport:CRL, Country:TR). Unclear or unknown
+    #     values answer 400 with candidates
+    #   to (string): destination, same rules as from, plus 'anywhere'
+    #   date_from (string): start of the departure window, YYYY-MM-DD; defaults to 30
+    #     days from today
+    #   date_to (string): end of the departure window, YYYY-MM-DD, inclusive; defaults
+    #     to date_from
+    #   return_from (string): start of the return window, YYYY-MM-DD; set it for a round
+    #     trip, omit for one-way
+    #   return_to (string): end of the return window, YYYY-MM-DD, inclusive; defaults to
+    #     return_from
+    #   min_price (string): lowest total price, in currency
+    #   max_price (string): highest total price, in currency
+    #   max_stops (string): most stops per leg (0 = direct only); omit for any
+    #   adults (integer): adult passengers (1-9)
+    #   children (integer): child passengers (0-8)
+    #   infants (integer): infant passengers, at most one per adult
+    #   cabin (string): cabin class. One of: ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST
+    #   sort (string): order of the list: QUALITY (kiwi.com's best first, then the rest
+    #     of what it has), PRICE (cheapest first) or DURATION (shortest first). One of:
     #     QUALITY, PRICE, DURATION
-    #   currency (string): Price currency (3-letter ISO code); min_price and max_price
+    #   currency (string): price currency, 3-letter ISO code; min_price and max_price
     #     use it too
-    #   limit (integer): Itineraries per page. A search returns at most 50 itineraries
-    #     (see data.cap)
-    #   offset (integer): Offset within the at most 50 itineraries of this search. Rows
-    #     past 50 are not reachable by offset: narrow the dates, price or stops instead
+    #   limit (integer): Rows in one page, 1 to 200 (default 50)
+    #   offset (integer): Rows to skip before the page starts (default 0)
     #   undefined (string)
     #   undefined (string)
     #   undefined (string)
     def search_v2(**params)
-      get("/search-v2", params, %w[from to])
+      get("/search-v2", params, %w[])
     end
 
-    # Flight search with date windows plus several origins and destinations
-    # (from=BRU,CRL), local departure and arrival time windows, and every itinerary the
-    # search has, paged by cursor, with total_estimate. Each itinerary names the origin
-    # and destination it matched and when its price expires.
+    # Every itinerary kiwi.com has for up to 3 origins and 3 destinations over departure
+    # (and return) date windows, with local departure and arrival time windows. Each
+    # itinerary names the origin and destination it matched (origin, destination), its
+    # fetch time and when its quoted price expires; total_estimate counts them and
+    # total_exact says whether none of the underlying searches was cut off.
+    #
+    # Each successful request uses 5 credits.
     #
     # Parameters:
-    #   from (string, required): Origin: one place or a comma list of up to 3 (BRU,CRL
-    #     or LON,STN). Each item follows the /search-v2 rules: a 3-letter code is an
-    #     airport (else a metro city code such as LON), an upper-case 2-letter code a
-    #     country (else a continent), then a name of any place type, case and accent
-    #     insensitive, or a search id from /places-v2 ('Airport:CRL'). Names that contain
-    #     a comma need their search id. An unclear item answers 400 with candidates
-    #   to (string, required): Destination: one place or a comma list of up to 3, same
-    #     rules as from, or 'anywhere' alone for every destination
-    #   date_from (string): Start of the departure date window, YYYY-MM-DD. Defaults to
-    #     30 days from today
-    #   date_to (string): End of the departure date window, YYYY-MM-DD (inclusive, at
-    #     most 92 days after date_from). Defaults to date_from (a single day)
-    #   return_from (string): Start of the return date window, YYYY-MM-DD. Set it for a
-    #     round trip; omit for one-way
-    #   return_to (string): End of the return date window, YYYY-MM-DD (inclusive).
-    #     Defaults to return_from
-    #   departure_from (string): Earliest local departure time of the outbound leg,
-    #     HH:MM (00:00 to 23:59), at the first departure airport. A window cannot cross
-    #     midnight
-    #   departure_to (string): Latest local departure time of the outbound leg, HH:MM
-    #     (inclusive, 00:00 to 24:00), at the first departure airport. A window cannot
-    #     cross midnight
-    #   arrival_from (string): Earliest local arrival time of the outbound leg, HH:MM
-    #     (00:00 to 23:59), at the final arrival airport. A window cannot cross midnight
-    #   arrival_to (string): Latest local arrival time of the outbound leg, HH:MM
-    #     (inclusive, 00:00 to 24:00), at the final arrival airport. A window cannot cross
-    #     midnight
-    #   min_price (number): Lowest total price, in `currency`
-    #   max_price (number): Highest total price, in `currency`
-    #   max_stops (integer): Most stops per leg (0 = direct only). Omit for any. One of:
-    #     0, 1, 2, 3
-    #   adults (integer): Adult passengers (1-9)
-    #   children (integer): Child passengers (0-8)
-    #   infants (integer): Infant passengers (at most one per adult)
-    #   cabin (string): Cabin class. One of: ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST
-    #   sort (string): Order of the itineraries. PRICE and DURATION sort all of them;
-    #     QUALITY keeps the site's own ranking inside each part of the search (the best of
-    #     each first), then price. One of: QUALITY, PRICE, DURATION
-    #   currency (string): Price currency (3-letter ISO code); min_price and max_price
+    #   from (string): origin: one place or a comma list of up to 3 (BRU,CRL or
+    #     LON,STN). Each item: a 3-letter upper-case code is an airport (else a metro city
+    #     code such as LON), an upper-case 2-letter code a country (else a continent);
+    #     otherwise a name of any place type, case and accent insensitive, or a search id
+    #     from /places-v2 (Airport:CRL). Names containing a comma need their search id.
+    #     Unclear items answer 400 with candidates
+    #   to (string): destination: one place or a comma list of up to 3, same rules, or
+    #     'anywhere' alone
+    #   date_from (string): start of the departure window, YYYY-MM-DD; defaults to 30
+    #     days from today
+    #   date_to (string): end of the departure window, YYYY-MM-DD, inclusive, at most 92
+    #     days after date_from; defaults to date_from
+    #   return_from (string): start of the return window, YYYY-MM-DD; set it for a round
+    #     trip, omit for one-way
+    #   return_to (string): end of the return window, YYYY-MM-DD, inclusive; defaults to
+    #     return_from
+    #   departure_from (string): earliest local departure time of the outbound leg,
+    #     HH:MM, at the first departure airport
+    #   departure_to (string): latest local departure time of the outbound leg, HH:MM
+    #     inclusive (up to 24:00). A window cannot cross midnight
+    #   arrival_from (string): earliest local arrival time of the outbound leg, HH:MM,
+    #     at the final arrival airport
+    #   arrival_to (string): latest local arrival time of the outbound leg, HH:MM
+    #     inclusive (up to 24:00). A window cannot cross midnight
+    #   min_price (string): lowest total price, in currency
+    #   max_price (string): highest total price, in currency
+    #   max_stops (string): most stops per leg (0 = direct only); omit for any
+    #   adults (integer): adult passengers (1-9)
+    #   children (integer): child passengers (0-8)
+    #   infants (integer): infant passengers, at most one per adult
+    #   cabin (string): cabin class. One of: ECONOMY, PREMIUM_ECONOMY, BUSINESS, FIRST
+    #   sort (string): PRICE or DURATION sort all itineraries; QUALITY keeps kiwi.com's
+    #     ranking inside each part of the search (the best of each first), then price. One
+    #     of: QUALITY, PRICE, DURATION
+    #   currency (string): price currency, 3-letter ISO code; min_price and max_price
     #     use it too
-    #   limit (integer): Itineraries per page. Every itinerary of the search is
-    #     reachable: follow pagination.next_cursor (or offset) while pagination.has_more
-    #     is true
-    #   offset (integer): Offset into all the itineraries of the search
+    #   limit (integer): Rows in one page, 1 to 200 (default 50)
+    #   offset (integer): Rows to skip before the page starts (default 0)
     #   undefined (string)
     #   undefined (string)
     #   undefined (string)
     def search_v3(**params)
-      get("/search-v3", params, %w[from to])
+      get("/search-v3", params, %w[])
     end
 
     private

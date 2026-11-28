@@ -152,17 +152,17 @@ Console.WriteLine(result);
 
 | Endpoint | What it returns | Credits per call |
 |---|---|---|
-| [`GET /airports-near`](#get-airports-near) | Airports within a radius of a lat/lon point, nearest first, with distance, city, country and a popularity hint. | 1 |
-| [`GET /explore`](#get-explore) | Cheapest flight to every destination city from a place, like the site's 'anywhere' search: one row per city with price, airport and times. | 1 |
-| [`GET /explore-v2`](#get-explore-v2) | Cheapest flight to every destination city from a place, like the site's 'anywhere' search, with that flight's airlines, stops, duration, local departure and arrival times and booking link on every row. | 1 |
-| [`GET /places`](#get-places) | Search Kiwi locations (city/airport/country/region/subdivision) by name or IATA code. | 1 |
-| [`GET /places-v2`](#get-places-v2) | Search Kiwi locations of every type by name or code, with an optional type filter. | 1 |
-| [`GET /places/{id}`](#get-placesid) | One Kiwi location by id or code: name, type, codes, city, country, region, continent, time zone, population and coordinates. | 1 |
-| [`GET /revalidate`](#get-revalidate) | Check one itinerary from /search-v2 or /search-v3 again before booking: whether it is still available, its current price for the given passengers and currency, a fresh booking link, fetched_at and expires_at. | 1 |
-| [`GET /routes`](#get-routes) | List published city-pair routes from Kiwi route sitemaps. | 1 |
-| [`GET /search`](#get-search) | Flight search: itineraries with prices, airlines, routes and departure/arrival times. | 1 |
-| [`GET /search-v2`](#get-search-v2) | Flight search with departure and return date windows, a price range and a stop limit. | 1 |
-| [`GET /search-v3`](#get-search-v3) | Flight search with date windows plus several origins and destinations (from=BRU,CRL), local departure and arrival time windows, and every itinerary the search has, paged by cursor, with total_estimate. | 1 |
+| [`GET /airports-near`](#get-airports-near) | Airports within a radius of a point, nearest first, with distance, city, country, time zone and Kiwi popularity. | 5 |
+| [`GET /explore`](#get-explore) | The cheapest flight to every destination city from a place, like kiwi.com's 'anywhere' search: one row per city with price, origin and destination airports, local and UTC times and, for round trips, nights and return date. | 5 |
+| [`GET /explore-v2`](#get-explore-v2) | The cheapest flight to every destination city from a place, like kiwi.com's 'anywhere' search, with that flight on every row: airlines, stops, duration, local and UTC departure and arrival, segments and booking link (and the return leg for round trips). | 5 |
+| [`GET /places`](#get-places) | Kiwi locations of one type matching a name or IATA code, best match first. | 5 |
+| [`GET /places-v2`](#get-places-v2) | Kiwi locations of every type matching a name or code, best match first; each row has its country and a search_id for the flight searches. | 5 |
+| [`GET /places/{id}`](#get-placesid) | One Kiwi location by id or code: name, type, codes, city, country, region, continent, time zone, population and coordinates. | 5 |
+| [`GET /revalidate`](#get-revalidate) | Checks one itinerary from /search, /search-v2 or /search-v3 again before booking: whether the same flights are still on sale, their current total price for these passengers and currency, a fresh booking link and segments, fetched_at and expires_at. | 5 |
+| [`GET /routes`](#get-routes) | Published city-pair routes (cheap-flights pages) from one of Kiwi's route sitemaps, in sitemap order. | 5 |
+| [`GET /search`](#get-search) | Flight itineraries for one departure day (and optional return day): prices, airlines, segments, local and UTC times and booking links, as kiwi.com ranks them (at most 25 per search). | 5 |
+| [`GET /search-v2`](#get-search-v2) | Flight itineraries for departure (and optional return) date windows, with prices, segments, airlines, local and UTC times and booking links. | 5 |
+| [`GET /search-v3`](#get-search-v3) | Every itinerary kiwi.com has for up to 3 origins and 3 destinations over departure (and return) date windows, with local departure and arrival time windows. | 5 |
 
 Try each one in the browser on the [Kiwi.com API page](https://maviapi.com/apis/kiwi?utm_source=github&utm_medium=readme&utm_campaign=sdk-kiwi).
 
@@ -190,18 +190,20 @@ Base URL: `https://api.maviapi.com/v1/sites/kiwi`. API version 2026-11-27. The s
 
 ### `GET /airports-near`
 
-Airports within a radius of a lat/lon point, nearest first, with distance, city, country and a popularity hint.
+Airports within a radius of a point, nearest first, with distance, city, country, time zone and Kiwi popularity.
+
+Each successful request uses 5 credits.
 
 Methods: `airports_near` (Python, Ruby) · `airportsNear` (JavaScript/TypeScript, PHP, Java) · `AirportsNear` (Go) · `AirportsNearAsync` (C#)
 
 Parameters:
 
-- `lat` (number, required): Latitude of the point, in decimal degrees. Example: `51.5`.
-- `lon` (number, required): Longitude of the point, in decimal degrees. Example: `-0.12`.
-- `radius_km` (number, optional): Search radius in km (default 150, max 500). Example: `50`.
-- `include_inactive` (string, optional): true also returns airports Kiwi sells no flights from (small airfields, military fields). One of: `false`, `true`. Example: `false`.
-- `limit` (integer, optional): Airports per page. The source returns at most the 50 nearest airports per call (data.capped); narrow radius_km to stay under it. Example: `50`.
-- `offset` (integer, optional): Offset within the at most 50 nearest airports of a call. Example: `0`.
+- `lat` (number, optional): latitude of the point, decimal degrees. Example: `51.5`.
+- `lon` (number, optional): longitude of the point, decimal degrees. Example: `-0.12`.
+- `radius_km` (number, optional): search radius in km (default 150, max 500). Example: `150`.
+- `include_inactive` (string, optional): "true" also returns airports Kiwi sells no flights from (small airfields, military fields). One of: `false`, `true`. Example: `false`.
+- `limit` (integer, optional): Rows in one page, 1 to 50 (default 50).
+- `offset` (integer, optional): Rows to skip before the page starts (default 0).
 - `undefined` (string, optional)
 - `undefined` (string, optional)
 - `undefined` (string, optional)
@@ -223,11 +225,11 @@ Parameters:
     "capped": false,
     "airports": [
       {
-        "code": "LHR",
-        "id": "LHR",
-        "search_id": "Airport:LHR",
-        "icao": "EGLL",
-        "name": "Heathrow",
+        "code": "LCY",
+        "id": "LCY",
+        "search_id": "Airport:LCY",
+        "icao": "EGLC",
+        "name": "London City",
         "city": {
           "id": "london_gb",
           "name": "London"
@@ -238,24 +240,31 @@ Parameters:
         },
         "timezone": "Europe/London",
         "coordinates": {
-          "lat": 51.4775,
-          "lon": -0.461389
+          "lat": 51.505,
+          "lon": 0.054167
         },
-        "distance_km": 23.7,
-        "popularity": 4458934,
-        "global_rank": 11,
+        "distance_km": 12.1,
+        "popularity": 300276,
+        "global_rank": 165,
         "active": true
       }
-    ]
+    ],
+    "pagination": {
+      "count": 8,
+      "has_more": false,
+      "next_cursor": null
+    },
+    "fetched_at": "2026-11-27T17:57:11.839Z",
+    "age": 0
   },
-  "cached": false,
-  "source": "kiwi:locations",
+  "cached": null,
+  "source": null,
   "pagination": {
-    "total": 8,
-    "limit": 50,
-    "offset": 0,
-    "count": 8,
-    "has_more": false,
+    "total": null,
+    "limit": null,
+    "offset": null,
+    "count": null,
+    "has_more": null,
     "next_cursor": null
   },
   "fetched_at": null,
@@ -267,29 +276,31 @@ Parameters:
 
 ### `GET /explore`
 
-Cheapest flight to every destination city from a place, like the site's 'anywhere' search: one row per city with price, airport and times. Narrow by country, region or continent, dates, price and stops; expand attaches full itineraries.
+The cheapest flight to every destination city from a place, like kiwi.com's 'anywhere' search: one row per city with price, origin and destination airports, local and UTC times and, for round trips, nights and return date. expand attaches the top 3 full itineraries for the first N cities.
+
+Each successful request uses 5 credits.
 
 Methods: `explore` (Python, JavaScript/TypeScript, PHP, Ruby, Java) · `Explore` (Go) · `ExploreAsync` (C#)
 
 Parameters:
 
-- `from` (string, required): Origin. Codes first: a 3-letter code is an airport (else a metro city code such as LON), an upper-case 2-letter code a country (else a continent such as EU). Then a name of any place type (city, airport, subdivision, country, region, continent), case and accent insensitive, or a search id from /places-v2 (e.g. 'Airport:CRL', 'Country:TR'). An unclear or unknown value answers 400 with candidates. Example: `London`.
-- `to` (string, optional): Optional broad scope for the destinations: a country, subdivision, region or continent (code, name or search id, same rules as from). Omit or 'anywhere' for every destination. Example: `anywhere`.
-- `date_from` (string, optional): Start of the departure date window, YYYY-MM-DD. Defaults to 30 days from today.
-- `date_to` (string, optional): End of the departure date window, YYYY-MM-DD (inclusive). Defaults to date_from (a single day).
-- `return_from` (string, optional): Start of the return date window, YYYY-MM-DD. Set it for a round trip; omit for one-way.
-- `return_to` (string, optional): End of the return date window, YYYY-MM-DD (inclusive). Defaults to return_from.
-- `min_price` (number, optional): Lowest price per destination, in `currency`.
-- `max_price` (number, optional): Highest price per destination, in `currency`.
-- `max_stops` (integer, optional): Most stops per leg (0 = direct only). Omit for any. One of: `0`, `1`, `2`, `3`. Example: `0`.
-- `adults` (integer, optional): Adult passengers (1-9). Example: `1`.
-- `children` (integer, optional): Child passengers (0-8). Example: `0`.
-- `infants` (integer, optional): Infant passengers (at most one per adult). Example: `0`.
-- `sort` (string, optional): Which flight represents each city and the order of the cities: PRICE = cheapest first, POPULARITY = the site's popular destinations first (the set differs a little per sort). One of: `PRICE`, `POPULARITY`, `QUALITY`, `DURATION`, `DATE`. Example: `PRICE`.
-- `currency` (string, optional): Price currency (3-letter ISO code); min_price and max_price use it too. Example: `eur`.
-- `expand` (integer, optional): Also attach the top 3 itineraries (segments, airlines, booking link) for the destinations ranked 1 to N (on whichever page they fall). 0 = none. One of: `0`, `1`, `2`, `3`, `4`, `5`. Example: `0`.
-- `limit` (integer, optional): Destinations per page (max 1000). Every reachable city is returned, see pagination.total. Example: `50`.
-- `offset` (integer, optional): Pagination offset over every destination city. Example: `0`.
+- `from` (string, optional): origin. A 3-letter upper-case code is an airport (else a metro city code such as LON), an upper-case 2-letter code a country (else a continent such as EU); otherwise a name of any place type, case and accent insensitive, or a search id from /places-v2 (Airport:CRL, Country:TR). Unclear or unknown values answer 400 with candidates. Example: `London`.
+- `to` (string, optional): optional broad scope for the destinations: a country, subdivision, region or continent (code, name or search id); 'anywhere' for every destination. Example: `anywhere`.
+- `date_from` (string, optional): start of the departure window, YYYY-MM-DD; defaults to 30 days from today.
+- `date_to` (string, optional): end of the departure window, YYYY-MM-DD, inclusive; defaults to date_from.
+- `return_from` (string, optional): start of the return window, YYYY-MM-DD; set it for a round trip, omit for one-way.
+- `return_to` (string, optional): end of the return window, YYYY-MM-DD, inclusive; defaults to return_from.
+- `min_price` (string, optional): lowest price per destination, in currency.
+- `max_price` (string, optional): highest price per destination, in currency.
+- `max_stops` (string, optional): most stops per leg (0 = direct only); omit for any.
+- `adults` (integer, optional): adult passengers (1-9). Example: `1`.
+- `children` (integer, optional): child passengers (0-8). Example: `0`.
+- `infants` (integer, optional): infant passengers, at most one per adult. Example: `0`.
+- `sort` (string, optional): which flight represents each city and the order of the cities: PRICE (cheapest first), POPULARITY (kiwi.com's popular destinations first), QUALITY, DURATION or DATE. The set of cities differs a little per sort. One of: `PRICE`, `POPULARITY`, `QUALITY`, `DURATION`, `DATE`. Example: `PRICE`.
+- `currency` (string, optional): price currency, 3-letter ISO code; min_price and max_price use it too. Example: `eur`.
+- `expand` (integer, optional): attach the top 3 itineraries (segments, airlines, booking link) to the destinations ranked 1 to N; 0 = none. Example: `0`.
+- `limit` (integer, optional): Rows in one page, 1 to 1000 (default 50).
+- `offset` (integer, optional): Rows to skip before the page starts (default 0).
 - `undefined` (string, optional)
 - `undefined` (string, optional)
 - `undefined` (string, optional)
@@ -311,11 +322,11 @@ Parameters:
         "matched_by": "name",
         "alternatives": [
           {
-            "id": "Subdivision:GA_US",
-            "name": "Georgia",
-            "type": "subdivision",
-            "code": "GA",
-            "parent": "United States"
+            "id": "City:london_on_ca",
+            "name": "London",
+            "type": "city",
+            "code": "YXU",
+            "parent": "Canada"
           }
         ]
       },
@@ -328,17 +339,11 @@ Parameters:
         "country": null,
         "matched_by": "anywhere",
         "alternatives": [
-          {
-            "id": "Subdivision:GA_US",
-            "name": "Georgia",
-            "type": "subdivision",
-            "code": "GA",
-            "parent": "United States"
-          }
+          null
         ]
       },
-      "date_from": "2026-12-10",
-      "date_to": "2026-12-10",
+      "date_from": "2026-12-27",
+      "date_to": "2026-12-27",
       "return_from": null,
       "return_to": null,
       "trip_type": "oneway",
@@ -354,26 +359,26 @@ Parameters:
       "currency": "EUR",
       "expand": 0
     },
-    "total": 89,
+    "total": 87,
     "cap": 1000,
-    "count": 50,
+    "count": 87,
     "destinations": [
       {
         "rank": 1,
-        "city": "Dublin",
-        "city_id": "dublin_ie",
-        "search_id": "City:dublin_ie",
+        "city": "Milan",
+        "city_id": "milan_it",
+        "search_id": "City:milan_it",
         "country": {
-          "code": "IE",
-          "name": "Ireland"
+          "code": "IT",
+          "name": "Italy"
         },
-        "airport": "Dublin",
-        "airport_code": "DUB",
+        "airport": "Milan–Malpensa",
+        "airport_code": "MXP",
         "price": {
-          "amount": 21,
+          "amount": 20,
           "currency": "EUR"
         },
-        "price_eur": 21,
+        "price_eur": 20,
         "origin": {
           "airport": "London Stansted",
           "code": "STN",
@@ -385,132 +390,33 @@ Parameters:
           }
         },
         "departure": {
-          "local_time": "2026-12-10T08:45:00",
-          "utc_time": "2026-12-10T08:45:00Z"
+          "local_time": "2026-12-27T06:25:00+00:00",
+          "utc_time": "2026-12-27T06:25:00Z"
         },
         "arrival": {
-          "local_time": "2026-12-10T10:05:00",
-          "utc_time": "2026-12-10T10:05:00Z"
+          "local_time": "2026-12-27T09:20:00+01:00",
+          "utc_time": "2026-12-27T08:20:00Z"
         },
         "nights": null,
-        "return_departure": null,
-        "itineraries": [
-          {
-            "id": "ItineraryOneWay:eyJwcm92...",
-            "type": "oneway",
-            "price": {
-              "amount": 71,
-              "currency": "EUR"
-            },
-            "price_eur": 71,
-            "duration_seconds": 14400,
-            "provider": "Kiwi.com",
-            "booking_url": "https://www.kiwi.com/en/booking/?token=...",
-            "outbound": {
-              "duration_seconds": 14400,
-              "stops": 0,
-              "segments": [
-                {
-                  "flight_number": "5729",
-                  "carrier": {
-                    "name": "Wizz Air UK",
-                    "code": "W9"
-                  },
-                  "duration_seconds": 14400,
-                  "from": {
-                    "airport": "Gatwick",
-                    "code": "LGW",
-                    "city": "London",
-                    "country": "United Kingdom",
-                    "local_time": "2026-09-10T13:30:00",
-                    "utc_time": "2026-09-10T12:30:00"
-                  },
-                  "to": {
-                    "airport": "Istanbul Airport",
-                    "code": "IST",
-                    "city": "Istanbul",
-                    "country": "Turkey",
-                    "local_time": "2026-09-10T19:30:00",
-                    "utc_time": "2026-09-10T16:30:00"
-                  }
-                }
-              ],
-              "from": {
-                "airport": "Gatwick",
-                "code": "LGW",
-                "city": "London",
-                "country": "United Kingdom",
-                "local_time": "2026-09-10T13:30:00",
-                "utc_time": "2026-09-10T12:30:00"
-              },
-              "to": {
-                "airport": "Istanbul Airport",
-                "code": "IST",
-                "city": "Istanbul",
-                "country": "Turkey",
-                "local_time": "2026-09-10T19:30:00",
-                "utc_time": "2026-09-10T16:30:00"
-              }
-            },
-            "inbound": {
-              "duration_seconds": 14400,
-              "stops": 0,
-              "segments": [
-                {
-                  "flight_number": "5729",
-                  "carrier": {
-                    "name": "Wizz Air UK",
-                    "code": "W9"
-                  },
-                  "duration_seconds": 14400,
-                  "from": {
-                    "airport": "Gatwick",
-                    "code": "LGW",
-                    "city": "London",
-                    "country": "United Kingdom",
-                    "local_time": "2026-09-10T13:30:00",
-                    "utc_time": "2026-09-10T12:30:00"
-                  },
-                  "to": {
-                    "airport": "Istanbul Airport",
-                    "code": "IST",
-                    "city": "Istanbul",
-                    "country": "Turkey",
-                    "local_time": "2026-09-10T19:30:00",
-                    "utc_time": "2026-09-10T16:30:00"
-                  }
-                }
-              ],
-              "from": {
-                "airport": "Gatwick",
-                "code": "LGW",
-                "city": "London",
-                "country": "United Kingdom",
-                "local_time": "2026-09-10T13:30:00",
-                "utc_time": "2026-09-10T12:30:00"
-              },
-              "to": {
-                "airport": "Istanbul Airport",
-                "code": "IST",
-                "city": "Istanbul",
-                "country": "Turkey",
-                "local_time": "2026-09-10T19:30:00",
-                "utc_time": "2026-09-10T16:30:00"
-              }
-            }
-          }
-        ]
+        "return_departure": null
       }
-    ]
+    ],
+    "pagination": {
+      "count": 87,
+      "has_more": false,
+      "next_cursor": null
+    },
+    "fetched_at": "2026-11-27T17:57:14.990Z",
+    "age": 0
   },
-  "cached": false,
-  "source": "kiwi:graphql",
+  "cached": null,
+  "source": null,
   "pagination": {
-    "total": 192,
-    "limit": 50,
-    "offset": 0,
-    "count": 50,
-    "has_more": true,
+    "total": null,
+    "limit": null,
+    "offset": null,
+    "count": null,
+    "has_more": null,
     "next_cursor": null
   },
   "fetched_at": null,
@@ -522,28 +428,30 @@ Parameters:
 
 ### `GET /explore-v2`
 
-Cheapest flight to every destination city from a place, like the site's 'anywhere' search, with that flight's airlines, stops, duration, local departure and arrival times and booking link on every row. Same filters and destination fields as /explore; paged by cursor.
+The cheapest flight to every destination city from a place, like kiwi.com's 'anywhere' search, with that flight on every row: airlines, stops, duration, local and UTC departure and arrival, segments and booking link (and the return leg for round trips). Same filters and destination fields as /explore; at most the first 200 cities.
+
+Each successful request uses 5 credits.
 
 Methods: `explore_v2` (Python, Ruby) · `exploreV2` (JavaScript/TypeScript, PHP, Java) · `ExploreV2` (Go) · `ExploreV2Async` (C#)
 
 Parameters:
 
-- `from` (string, required): Origin. Codes first: a 3-letter code is an airport (else a metro city code such as LON), an upper-case 2-letter code a country (else a continent such as EU). Then a name of any place type (city, airport, subdivision, country, region, continent), case and accent insensitive, or a search id from /places-v2 (e.g. 'Airport:CRL', 'Country:TR'). An unclear or unknown value answers 400 with candidates. Example: `London`.
-- `to` (string, optional): Optional broad scope for the destinations: a country, subdivision, region or continent (code, name or search id, same rules as from). Omit or 'anywhere' for every destination. Example: `Portugal`.
-- `date_from` (string, optional): Start of the departure date window, YYYY-MM-DD. Defaults to 30 days from today. Example: `2027-03-10`.
-- `date_to` (string, optional): End of the departure date window, YYYY-MM-DD (inclusive). Defaults to date_from (a single day). Example: `2027-03-11`.
-- `return_from` (string, optional): Start of the return date window, YYYY-MM-DD. Set it for a round trip; omit for one-way. Example: `2027-03-17`.
-- `return_to` (string, optional): End of the return date window, YYYY-MM-DD (inclusive). Defaults to return_from. Example: `2027-03-18`.
-- `min_price` (number, optional): Lowest price per destination, in `currency`. Example: `100`.
-- `max_price` (number, optional): Highest price per destination, in `currency`. Example: `500`.
-- `max_stops` (integer, optional): Most stops per leg (0 = direct only). Omit for any. One of: `0`, `1`, `2`, `3`. Example: `0`.
-- `adults` (integer, optional): Adult passengers (1-9). Example: `2`.
-- `children` (integer, optional): Child passengers (0-8). Example: `1`.
-- `infants` (integer, optional): Infant passengers (at most one per adult). Example: `1`.
-- `sort` (string, optional): Order of the cities (and which flight sets the destination price): PRICE = cheapest first, POPULARITY = the site's popular destinations first. The flight on each row is always that city's cheapest itinerary. One of: `PRICE`, `POPULARITY`, `QUALITY`, `DURATION`, `DATE`. Example: `PRICE`.
-- `currency` (string, optional): Price currency (3-letter ISO code); min_price and max_price use it too. Example: `usd`.
-- `limit` (integer, optional): Destinations per page (max 200). Every reachable city is returned, see pagination.total; walk the rest with cursor. Example: `50`.
-- `offset` (integer, optional): Pagination offset over every destination city. Example: `0`.
+- `from` (string, optional): origin. A 3-letter upper-case code is an airport (else a metro city code such as LON), an upper-case 2-letter code a country (else a continent such as EU); otherwise a name of any place type, case and accent insensitive, or a search id from /places-v2. Unclear or unknown values answer 400 with candidates. Example: `London`.
+- `to` (string, optional): optional broad scope for the destinations: a country, subdivision, region or continent (code, name or search id); 'anywhere' for every destination. Example: `anywhere`.
+- `date_from` (string, optional): start of the departure window, YYYY-MM-DD; defaults to 30 days from today.
+- `date_to` (string, optional): end of the departure window, YYYY-MM-DD, inclusive; defaults to date_from.
+- `return_from` (string, optional): start of the return window, YYYY-MM-DD; set it for a round trip, omit for one-way.
+- `return_to` (string, optional): end of the return window, YYYY-MM-DD, inclusive; defaults to return_from.
+- `min_price` (string, optional): lowest price per destination, in currency.
+- `max_price` (string, optional): highest price per destination, in currency.
+- `max_stops` (string, optional): most stops per leg (0 = direct only); omit for any.
+- `adults` (integer, optional): adult passengers (1-9). Example: `1`.
+- `children` (integer, optional): child passengers (0-8). Example: `0`.
+- `infants` (integer, optional): infant passengers, at most one per adult. Example: `0`.
+- `sort` (string, optional): order of the cities (and which flight sets the destination price): PRICE (cheapest first), POPULARITY, QUALITY, DURATION or DATE. The flight on each row is that city's cheapest itinerary. One of: `PRICE`, `POPULARITY`, `QUALITY`, `DURATION`, `DATE`. Example: `PRICE`.
+- `currency` (string, optional): price currency, 3-letter ISO code; min_price and max_price use it too. Example: `eur`.
+- `limit` (integer, optional): Rows in one page, 1 to 200 (default 50).
+- `offset` (integer, optional): Rows to skip before the page starts (default 0).
 - `undefined` (string, optional)
 - `undefined` (string, optional)
 - `undefined` (string, optional)
@@ -565,11 +473,11 @@ Parameters:
         "matched_by": "name",
         "alternatives": [
           {
-            "id": "Subdivision:GA_US",
-            "name": "Georgia",
-            "type": "subdivision",
-            "code": "GA",
-            "parent": "United States"
+            "id": "City:london_on_ca",
+            "name": "London",
+            "type": "city",
+            "code": "YXU",
+            "parent": "Canada"
           }
         ]
       },
@@ -582,17 +490,11 @@ Parameters:
         "country": null,
         "matched_by": "anywhere",
         "alternatives": [
-          {
-            "id": "Subdivision:GA_US",
-            "name": "Georgia",
-            "type": "subdivision",
-            "code": "GA",
-            "parent": "United States"
-          }
+          null
         ]
       },
-      "date_from": "2026-12-10",
-      "date_to": "2026-12-10",
+      "date_from": "2026-12-27",
+      "date_to": "2026-12-27",
       "return_from": null,
       "return_to": null,
       "trip_type": "oneway",
@@ -607,26 +509,28 @@ Parameters:
       "sort": "PRICE",
       "currency": "EUR"
     },
-    "total": 89,
+    "total": 87,
     "cap": 1000,
-    "count": 50,
+    "count": 87,
+    "with_flight": 87,
+    "lookups_failed": 0,
     "destinations": [
       {
         "rank": 1,
-        "city": "Dublin",
-        "city_id": "dublin_ie",
-        "search_id": "City:dublin_ie",
+        "city": "Milan",
+        "city_id": "milan_it",
+        "search_id": "City:milan_it",
         "country": {
-          "code": "IE",
-          "name": "Ireland"
+          "code": "IT",
+          "name": "Italy"
         },
-        "airport": "Dublin",
-        "airport_code": "DUB",
+        "airport": "Milan–Malpensa",
+        "airport_code": "MXP",
         "price": {
-          "amount": 21,
+          "amount": 20,
           "currency": "EUR"
         },
-        "price_eur": 21,
+        "price_eur": 20,
         "origin": {
           "airport": "London Stansted",
           "code": "STN",
@@ -638,22 +542,22 @@ Parameters:
           }
         },
         "departure": {
-          "local_time": "2026-12-10T08:45:00",
-          "utc_time": "2026-12-10T08:45:00Z"
+          "local_time": "2026-12-27T06:25:00+00:00",
+          "utc_time": "2026-12-27T06:25:00Z"
         },
         "arrival": {
-          "local_time": "2026-12-10T10:05:00",
-          "utc_time": "2026-12-10T10:05:00Z"
+          "local_time": "2026-12-27T09:20:00+01:00",
+          "utc_time": "2026-12-27T08:20:00Z"
         },
         "nights": null,
         "return_departure": null,
         "flight": {
-          "id": "ItineraryOneWay:eyJwcm92aWRlcnMiOiJLSVdJIi...",
+          "id": "ItineraryOneWay:eyJwcm92aWRlcnMiOiJLSVdJLUJBU0lDOktJV0kiLCJyb3V0ZV9kYXRhIjoiRlI6ODcxOTpTVE46MTc5ODM1MjcwMDpNWFA6MTc5ODM1OTYwMDplY29ub215OkZhbHNlOjo6IiwicHJpY2UiOiIyMCJ9",
           "price": {
-            "amount": 21,
+            "amount": 20,
             "currency": "EUR"
           },
-          "price_eur": 21,
+          "price_eur": 20,
           "airlines": [
             {
               "code": "FR",
@@ -661,41 +565,76 @@ Parameters:
             }
           ],
           "stops": 0,
-          "duration_minutes": 80,
-          "departure_time": "2026-12-27T07:25:00+00:00",
-          "arrival_time": "2026-12-27T09:45:00+01:00",
+          "duration_minutes": 115,
+          "departure": {
+            "local_time": "2026-12-27T06:25:00+00:00",
+            "utc_time": "2026-12-27T06:25:00Z",
+            "airport": "London Stansted",
+            "code": "STN"
+          },
+          "arrival": {
+            "local_time": "2026-12-27T09:20:00+01:00",
+            "utc_time": "2026-12-27T08:20:00Z",
+            "airport": "Milan–Malpensa",
+            "code": "MXP"
+          },
+          "segments": [
+            {
+              "flight_number": "8719",
+              "carrier": {
+                "name": "Ryanair",
+                "code": "FR"
+              },
+              "operating_carrier": null,
+              "cabin": "ECONOMY",
+              "duration_seconds": 6900,
+              "from": {
+                "airport": "London Stansted",
+                "code": "STN",
+                "city": "London",
+                "country": "United Kingdom",
+                "local_time": "2026-12-27T06:25:00+00:00",
+                "utc_time": "2026-12-27T06:25:00Z"
+              },
+              "to": {
+                "airport": "Milan–Malpensa",
+                "code": "MXP",
+                "city": "Milan",
+                "country": "Italy",
+                "local_time": "2026-12-27T09:20:00+01:00",
+                "utc_time": "2026-12-27T08:20:00Z"
+              },
+              "layover_seconds": null
+            }
+          ],
+          "departure_time": "2026-12-27T06:25:00+00:00",
+          "arrival_time": "2026-12-27T09:20:00+01:00",
           "from_airport": "STN",
-          "to_airport": "HHN",
-          "total_duration_minutes": 80,
-          "booking_url": "https://www.kiwi.com/en/booking/?direct=true&locale=en&currency=eur&passengers=1-0-0&token=...",
-          "inbound": {
-            "airlines": [
-              {
-                "code": "FR",
-                "name": "Ryanair"
-              }
-            ],
-            "stops": 0,
-            "duration_minutes": 70,
-            "departure_time": "2027-01-03T09:45:00+01:00",
-            "arrival_time": "2027-01-03T10:55:00+00:00",
-            "from_airport": "HHN",
-            "to_airport": "STN"
-          }
+          "to_airport": "MXP",
+          "total_duration_minutes": 115,
+          "inbound": null,
+          "return": null,
+          "provider": "Kiwi.com",
+          "booking_url": "https://www.kiwi.com/en/booking/?direct=true&locale=en&currency=eur&passengers=1-0-0&token=Hdi0WjpI6J5NtkYLZVJuVdaFhLXZtMNCjWvaJ-_bXBWJvDQdFmcxcdQ5Ue4vWMFBvvjxZ0mKtemwzrxFuV1-Tqu6wETVYGNqdOyMdhFG_jmPLOfUagsA1AFzDgqrpOqSuAEQsV3ynbdnQb121ZOBKD32-fHCdxz78G5cG_r-07dugONX96YvHkgsj1ODegx0Ar8I3kJ6sR5IWiL5hs-7ameAx6u8kv8xQd-QCUxYJjVSHedZKpDU4KsLoeA1nq4M0ilZm8NewIbQb0xFboOmdOnp1t89HRyVDmJnAUPFz-CKOYGqXK2MpvYHPYjL4VCdEnbSLkIU1aBOaiMMKh6520KVY4e54w5wvVQW54GpfO7OYqtegjhoEw85YCIARsbJQZNHta6SWoZAxqN-vXeSnhxiLsWg8H6Hvx13RqJym-aftuIOptmozeCpUrsfvHH_j0hag3K0KLj4QoDbq1XeK05tQ5C59LEv1ZqOVKSwNxDLEDy3YiWnYv46gIAWHRQLNlwszthnrTYXVN2SN81aLNiZ4I8eO4Zu9TX9934qItvyud1clx1SbpXU4-tBTfmZ3z8HO7R6tvGv-4qRkXAYisY0RJih2JKQmQH9_-iQAJPUBIwj6kNfB_d_MUDGfFHIQOh8dLbGRqpA1rPUJ3rhUJasrT-hXgaD4m4ysT-1h4BfUqy_OO8SmqA9Rtd8nnvdTD2jJlrtJ3jVPrnv1SgmP1o2QBwqBAMHHrRV_eXFes-c559i7gl9z2S2ONqFWt0n4eWAze0u9s9siikCyZ6OlAyvPQe3hiOkvHDo6CNLh4kElIoBUF2DQhFI2-GpVuIJAoth7lbMmSXndN_8hyEZOQqCCIrNNCyrtV6HEcB4YoC4f5UfUtzlcHhbO5U5sQeVocNwZ3whgncQMFRU4Gbbg6e0BwhR4m3WIqdHUdfQVVyxh86e_xpqNLGgMQHog_n72qI6Lv5k1BtHT-4Q-HYxJI2Da3Q9UuFqCu8hJyw8VRMphppSG6ixA2b17GpjyHvi9wnxzt3GnmHoZZSKaAXHf_Wvf7Y49sR4Zmv_Zs0Wgh45Yj1BPXE8JH4-C-31JbVKY3O0n4U8xZ-2qOqG8u25VlYPDO66xvB3-ttKCLS4HpdUjnuA3tSp5e3QedHF38DcK&searchType=oneWay&searchBags=0.0"
         }
       }
     ],
-    "with_flight": 87,
-    "lookups_failed": 0
+    "pagination": {
+      "count": 87,
+      "has_more": false,
+      "next_cursor": null
+    },
+    "fetched_at": "2026-11-27T17:57:20.997Z",
+    "age": 0
   },
-  "cached": false,
-  "source": "kiwi:graphql",
+  "cached": null,
+  "source": null,
   "pagination": {
-    "total": 87,
-    "limit": 50,
-    "offset": 0,
-    "count": 50,
-    "has_more": true,
+    "total": null,
+    "limit": null,
+    "offset": null,
+    "count": null,
+    "has_more": null,
     "next_cursor": null
   },
   "fetched_at": null,
@@ -707,16 +646,18 @@ Parameters:
 
 ### `GET /places`
 
-Search Kiwi locations (city/airport/country/region/subdivision) by name or IATA code. Params: q, type, limit/offset.
+Kiwi locations of one type matching a name or IATA code, best match first.
+
+Each successful request uses 5 credits.
 
 Methods: `places` (Python, JavaScript/TypeScript, PHP, Ruby, Java) · `Places` (Go) · `PlacesAsync` (C#)
 
 Parameters:
 
-- `q` (string, optional): Search term (place name or IATA code). Example: `paris`.
-- `type` (string, optional): Location type to search. One of: `city`, `airport`, `country`, `region`, `subdivision`. Example: `city`.
-- `limit` (integer, optional): Max places per page. Example: `10`.
-- `offset` (integer, optional): Pagination offset. Example: `0`.
+- `q` (string, optional): search term (place name or IATA code). Example: `paris`.
+- `type` (string, optional): location type to search: city, airport, country, region or subdivision. One of: `city`, `airport`, `country`, `region`, `subdivision`. Example: `city`.
+- `limit` (integer, optional): Rows in one page, 1 to 200 (default 50).
+- `offset` (integer, optional): Rows to skip before the page starts (default 0).
 - `undefined` (string, optional)
 - `undefined` (string, optional)
 - `undefined` (string, optional)
@@ -738,7 +679,7 @@ Parameters:
         "type": "city",
         "slug": "paris-france",
         "city": null,
-        "subdivision": "Ile-de-France",
+        "subdivision": "Île-de-France",
         "country": {
           "code": "FR",
           "name": "France"
@@ -753,16 +694,23 @@ Parameters:
           "lon": 2.352222
         }
       }
-    ]
+    ],
+    "pagination": {
+      "count": 6,
+      "has_more": false,
+      "next_cursor": null
+    },
+    "fetched_at": "2026-11-27T17:57:21.261Z",
+    "age": 0
   },
-  "cached": false,
-  "source": "kiwi:locations",
+  "cached": null,
+  "source": null,
   "pagination": {
-    "total": 6,
-    "limit": 50,
-    "offset": 0,
-    "count": 50,
-    "has_more": false,
+    "total": null,
+    "limit": null,
+    "offset": null,
+    "count": null,
+    "has_more": null,
     "next_cursor": null
   },
   "fetched_at": null,
@@ -774,16 +722,18 @@ Parameters:
 
 ### `GET /places-v2`
 
-Search Kiwi locations of every type by name or code, with an optional type filter. Every row carries its country (airports included) and a search_id for /search-v2.
+Kiwi locations of every type matching a name or code, best match first; each row has its country and a search_id for the flight searches.
+
+Each successful request uses 5 credits.
 
 Methods: `places_v2` (Python, Ruby) · `placesV2` (JavaScript/TypeScript, PHP, Java) · `PlacesV2` (Go) · `PlacesV2Async` (C#)
 
 Parameters:
 
-- `q` (string, required): Place name or code (case and accent insensitive). Example: `CRL`.
-- `type` (string, optional): Optional filter: one type or a comma list of city, airport, country, subdivision, region, continent, autonomous_territory, special, tourist_region. Omit to search every type. One of: `city`, `airport`, `country`, `subdivision`, `region`, `continent`, `autonomous_territory`, `special`, `tourist_region`. Example: `city`.
-- `limit` (integer, optional): Places per page (max 1000). Example: `50`.
-- `offset` (integer, optional): Pagination offset within the at most 1000 places of a query (see data.cap). Example: `0`.
+- `q` (string, optional): place name or code (case and accent insensitive). Example: `CRL`.
+- `type` (string, optional): optional filter, one type or a comma list of city, airport, country, subdivision, region, continent, autonomous_territory, special, tourist_region. Omit for every type.
+- `limit` (integer, optional): Rows in one page, 1 to 1000 (default 50).
+- `offset` (integer, optional): Rows to skip before the page starts (default 0).
 - `undefined` (string, optional)
 - `undefined` (string, optional)
 - `undefined` (string, optional)
@@ -796,10 +746,10 @@ Parameters:
   "data": {
     "query": "CRL",
     "types": "all",
-    "total": 192,
+    "total": 190,
     "cap": 1000,
     "capped": false,
-    "count": 50,
+    "count": 190,
     "places": [
       {
         "id": "CRL",
@@ -827,16 +777,23 @@ Parameters:
           "lon": 4.453889
         }
       }
-    ]
+    ],
+    "pagination": {
+      "count": 190,
+      "has_more": false,
+      "next_cursor": null
+    },
+    "fetched_at": "2026-11-27T17:57:21.324Z",
+    "age": 0
   },
-  "cached": false,
-  "source": "kiwi:locations",
+  "cached": null,
+  "source": null,
   "pagination": {
-    "total": 192,
-    "limit": 50,
-    "offset": 0,
-    "count": 50,
-    "has_more": true,
+    "total": null,
+    "limit": null,
+    "offset": null,
+    "count": null,
+    "has_more": null,
     "next_cursor": null
   },
   "fetched_at": null,
@@ -850,11 +807,13 @@ Parameters:
 
 One Kiwi location by id or code: name, type, codes, city, country, region, continent, time zone, population and coordinates.
 
+Each successful request uses 5 credits.
+
 Methods: `places_by_id` (Python, Ruby) · `placesById` (JavaScript/TypeScript, PHP, Java) · `PlacesById` (Go) · `PlacesByIdAsync` (C#)
 
 Parameters:
 
-- `id` (string, required, in the path): A Kiwi location id: an airport code (CRL), a city id (london_gb), a country code (GB), a subdivision (FL_US), a continent (europe), or a search id from /places-v2 or /explore (Airport:CRL, City:london_gb). Example: `CRL`.
+- `id` (string, required, in the path): a Kiwi location id: an airport code (CRL), a city id (london_gb), a country code (GB), a subdivision (FL_US), a continent (europe), or a search id (Airport:CRL, City:london_gb). Example: `CRL`.
 - `undefined` (string, optional)
 
 <details>
@@ -886,10 +845,12 @@ Parameters:
     "coordinates": {
       "lat": 50.459167,
       "lon": 4.453889
-    }
+    },
+    "fetched_at": "2026-11-27T17:57:21.052Z",
+    "age": 0
   },
-  "cached": false,
-  "source": "kiwi:locations",
+  "cached": null,
+  "source": null,
   "fetched_at": null,
   "age": null
 }
@@ -899,17 +860,19 @@ Parameters:
 
 ### `GET /revalidate`
 
-Check one itinerary from /search-v2 or /search-v3 again before booking: whether it is still available, its current price for the given passengers and currency, a fresh booking link, fetched_at and expires_at. Never cached.
+Checks one itinerary from /search, /search-v2 or /search-v3 again before booking: whether the same flights are still on sale, their current total price for these passengers and currency, a fresh booking link and segments, fetched_at and expires_at. Never cached.
+
+Each successful request uses 5 credits.
 
 Methods: `revalidate` (Python, JavaScript/TypeScript, PHP, Ruby, Java) · `Revalidate` (Go) · `RevalidateAsync` (C#)
 
 Parameters:
 
-- `id` (string, required): The itinerary id (`id`) of a row from /search-v2 or /search-v3, one-way or return. Example: `ItineraryOneWay:eyJwcm92aWRlcnMiOiJLSVdJLUJBU0lDOktJV0kiLCJyb3V0ZV9kYXRhIjoiVlk6MTA4MzpCUlU6MTgwMjI5MjkwMDpCQ046MTgwMjMwMDM0MDplY29ub215OkZhbHNlOjo6VlkiLCJwcmljZSI6IjY1In0=`.
-- `currency` (string, optional): Price currency (3-letter ISO code). Pass the currency of the search the id came from to compare with quoted_price. Example: `usd`.
-- `adults` (integer, optional): Adult passengers (1-9). Example: `2`.
-- `children` (integer, optional): Child passengers (0-8). Example: `1`.
-- `infants` (integer, optional): Infant passengers, at most one per adult. Example: `1`.
+- `id` (string, optional): the itinerary id (`id`) of a search row, one-way or return.
+- `currency` (string, optional): price currency, 3-letter ISO code; pass the currency of the original search to compare with quoted_price. Example: `eur`.
+- `adults` (integer, optional): adult passengers (1-9). Example: `1`.
+- `children` (integer, optional): child passengers (0-8). Example: `0`.
+- `infants` (integer, optional): infant passengers, at most one per adult. Example: `0`.
 - `undefined` (string, optional)
 
 <details>
@@ -918,133 +881,90 @@ Parameters:
 ```json
 {
   "data": {
-    "id": "ItineraryOneWay:eyJwcm92aWRlcnMiOiJLSVdJLUJBU0lDOktJV0kiLCJyb3V0ZV9kYXRhIjoiVlk6MTA4MzpCUlU6MTgwMjI5MjkwMDpCQ046MTgwMjMwMDM0MDplY29ub215OkZhbHNlOjo6VlkiLCJwcmljZSI6IjY1In0=",
+    "id": "ItineraryOneWay:eyJwcm92aWRlcnMiOiJLSVdJLUJBU0lDOktJV0kiLCJyb3V0ZV9kYXRhIjoiVlk6MTA3NzpCUlU6MTc5ODM2MjYwMDpCQ046MTc5ODM3MDEwMDplY29ub215OkZhbHNlOjo6VlkiLCJwcmljZSI6IjE2NyJ9",
     "type": "oneway",
-    "available": true,
-    "status": "available",
-    "current_id": "ItineraryOneWay:eyJwcm92aWRlcnMiOiJLSVdJLUJBU0lDOktJV0kiLCJyb3V0ZV9kYXRhIjoiVlk6MTA4MzpCUlU6MTgwMjI5MjkwMDpCQ046MTgwMjMwMDM0MDplY29ub215OkZhbHNlOjo6VlkiLCJwcmljZSI6IjY1In0=",
-    "price": {
-      "amount": 65,
-      "currency": "EUR"
-    },
-    "price_eur": 65,
-    "quoted_price": 65,
-    "price_changed": false,
-    "price_change": 0,
-    "booking_url": "https://www.kiwi.com/en/booking/?direct=true&locale=en&currency=eur&passengers=1-0-0&token=H11iYxM7AXnJcE4zpvV6mSfVhWSDX...",
-    "provider": "Kiwi.com",
-    "duration_seconds": 7440,
-    "outbound": {
-      "duration_seconds": 14400,
-      "stops": 0,
-      "segments": [
-        {
-          "flight_number": "5729",
-          "carrier": {
-            "name": "Wizz Air UK",
-            "code": "W9"
-          },
-          "duration_seconds": 14400,
-          "from": {
-            "airport": "Gatwick",
-            "code": "LGW",
-            "city": "London",
-            "country": "United Kingdom",
-            "local_time": "2026-09-10T13:30:00",
-            "utc_time": "2026-09-10T12:30:00",
-            "time": "2026-09-10T13:30:00+01:00"
-          },
-          "to": {
-            "airport": "Istanbul Airport",
-            "code": "IST",
-            "city": "Istanbul",
-            "country": "Turkey",
-            "local_time": "2026-09-10T19:30:00",
-            "utc_time": "2026-09-10T16:30:00",
-            "time": "2026-09-10T19:30:00+03:00"
-          }
-        }
-      ],
-      "from": {
-        "airport": "Gatwick",
-        "code": "LGW",
-        "city": "London",
-        "country": "United Kingdom",
-        "local_time": "2026-09-10T13:30:00",
-        "utc_time": "2026-09-10T12:30:00",
-        "time": "2026-09-10T13:30:00+01:00"
-      },
-      "to": {
-        "airport": "Istanbul Airport",
-        "code": "IST",
-        "city": "Istanbul",
-        "country": "Turkey",
-        "local_time": "2026-09-10T19:30:00",
-        "utc_time": "2026-09-10T16:30:00",
-        "time": "2026-09-10T19:30:00+03:00"
-      }
-    },
-    "inbound": {
-      "duration_seconds": 14400,
-      "stops": 0,
-      "segments": [
-        {
-          "flight_number": "5729",
-          "carrier": {
-            "name": "Wizz Air UK",
-            "code": "W9"
-          },
-          "duration_seconds": 14400,
-          "from": {
-            "airport": "Gatwick",
-            "code": "LGW",
-            "city": "London",
-            "country": "United Kingdom",
-            "local_time": "2026-09-10T13:30:00",
-            "utc_time": "2026-09-10T12:30:00",
-            "time": "2026-09-10T13:30:00+01:00"
-          },
-          "to": {
-            "airport": "Istanbul Airport",
-            "code": "IST",
-            "city": "Istanbul",
-            "country": "Turkey",
-            "local_time": "2026-09-10T19:30:00",
-            "utc_time": "2026-09-10T16:30:00",
-            "time": "2026-09-10T19:30:00+03:00"
-          }
-        }
-      ],
-      "from": {
-        "airport": "Gatwick",
-        "code": "LGW",
-        "city": "London",
-        "country": "United Kingdom",
-        "local_time": "2026-09-10T13:30:00",
-        "utc_time": "2026-09-10T12:30:00",
-        "time": "2026-09-10T13:30:00+01:00"
-      },
-      "to": {
-        "airport": "Istanbul Airport",
-        "code": "IST",
-        "city": "Istanbul",
-        "country": "Turkey",
-        "local_time": "2026-09-10T19:30:00",
-        "utc_time": "2026-09-10T16:30:00",
-        "time": "2026-09-10T19:30:00+03:00"
-      }
-    },
+    "quoted_price": 167,
     "passengers": {
       "adults": 1,
       "children": 0,
       "infants": 0
     },
     "currency": "EUR",
-    "fetched_at": "2026-11-26T09:34:42.611Z",
-    "expires_at": "2026-11-26T10:04:42.611Z"
+    "available": true,
+    "status": "available",
+    "current_id": "ItineraryOneWay:eyJwcm92aWRlcnMiOiJLSVdJLUJBU0lDOktJV0kiLCJyb3V0ZV9kYXRhIjoiVlk6MTA3NzpCUlU6MTc5ODM2MjYwMDpCQ046MTc5ODM3MDEwMDplY29ub215OkZhbHNlOjo6VlkiLCJwcmljZSI6IjE2NyJ9",
+    "price": {
+      "amount": 167,
+      "currency": "EUR"
+    },
+    "price_eur": 167,
+    "price_changed": false,
+    "price_change": 0,
+    "booking_url": "https://www.kiwi.com/en/booking/?direct=true&locale=en&currency=eur&passengers=1-0-0&token=HhAwI_v77loZKn-bVc6varhgzBjVyg7ywAn7GXavLRMpPwfd9YD-mJmEokSLBXJlTw2U_TfBJp3_uuejS1GNJobE7PC_ZWguWpF-0DLwktmAxV2lW0vtZUwtoFAmGy6nbpFjlGhHAACDuQ9q50fgK4bNubtfHd-e4sUFtTORWXoSPKwijjD1Ffo0jpuqHHocIB32VuJsNY1JaRQ0Z98G8X2AFa8VjpyxC5wp0b8TkZANKPJO_Sl3trE_p8yV90uMZteVvT0xBQ4cS2I55_4Z3kPYb1-TkXJl1v-Iexfj_wk0MgCR0lxfCS0i64Dn926Dq6w7_VTAcV1QqZxXve35Q_2-8Vdefd2LDQTpsvM3uk07Bx-_0biPVnKsBFrZC3Ff7hmfZsX6rP_J9vrFD0QlPH7bM4qIzSq4OWpJP8qVj8Bo5AlPknVRXpONWch3UoJ6t4CMv7D1k9icyORbzS6QSkkRvsp9wkE3UuuUTdu5kby1yjB4sRD1l1zu0Xl4RzHVUvKGl9ujLpLR1-rS8TPeVKXZfQ25IjGClu0y8WVfxLS8MAOd7fbZH1EYJAXntzEeuvgIEu-6gE6conflUymssyzYKyIx9gibOgUcjhQ4gY5ZJTRJx8E80N-4S6L8VLUq8BP3rCmLvspseo8ZDnC37YCD0kPCQklnV4M-3Bp2wP7qnblLQ36b2XGZ9kuxNOy8dVSHg6n8B3osQLRxQcYXyWOnhnsv0IyHmh73UwuXoq9BDwZpoWUhaZdMqxSkH4p3gpjwGvWKDn5GSUE_21tVvfbgVzyiDDgsj_0tDvh1zJ587DvlDZPlrVPm4NYa9moAuS9qS-3Qw3UM9dljKhmW2WCcdFdql1qZbHEcjrFde66uxmYBLTTJtMB98xJAHLykDVHGlwxT0cAWIQgfLd5puHD1eBbWMF5vScBbcGF7M--Ht2fTsrNAsNCR3SP-s5dAqlDafftw4X-49oXkW7EGwxDLcaeviN8eGidd__F-F96GOJ5z7zM6GRskfMPXZoo81SwTI_qrgtbnNBaNvPaXUm5XpWLI4tVrvsDf9WT38XoTc0-2KT8c-khd8bEgqnLXbdeyeon4lrJmgllgBmmd1zTReVmtXIHJUa5CLdObETwg%3D&searchType=oneWay&searchBags=0.0",
+    "provider": "Kiwi.com",
+    "duration_seconds": 7500,
+    "outbound": {
+      "duration_seconds": 7500,
+      "stops": 0,
+      "segments": [
+        {
+          "flight_number": "1077",
+          "carrier": {
+            "name": "Vueling",
+            "code": "VY"
+          },
+          "operating_carrier": {
+            "name": "Vueling",
+            "code": "VY"
+          },
+          "cabin": "ECONOMY",
+          "duration_seconds": 7500,
+          "from": {
+            "airport": "Brussels",
+            "code": "BRU",
+            "city": "Brussels",
+            "country": "Belgium",
+            "local_time": "2026-12-27T10:10:00+01:00",
+            "utc_time": "2026-12-27T09:10:00Z",
+            "time": "2026-12-27T10:10:00+01:00"
+          },
+          "to": {
+            "airport": "Barcelona–El Prat",
+            "code": "BCN",
+            "city": "Barcelona",
+            "country": "Spain",
+            "local_time": "2026-12-27T12:15:00+01:00",
+            "utc_time": "2026-12-27T11:15:00Z",
+            "time": "2026-12-27T12:15:00+01:00"
+          },
+          "layover_seconds": null
+        }
+      ],
+      "from": {
+        "airport": "Brussels",
+        "code": "BRU",
+        "city": "Brussels",
+        "country": "Belgium",
+        "local_time": "2026-12-27T10:10:00+01:00",
+        "utc_time": "2026-12-27T09:10:00Z",
+        "time": "2026-12-27T10:10:00+01:00"
+      },
+      "to": {
+        "airport": "Barcelona–El Prat",
+        "code": "BCN",
+        "city": "Barcelona",
+        "country": "Spain",
+        "local_time": "2026-12-27T12:15:00+01:00",
+        "utc_time": "2026-12-27T11:15:00Z",
+        "time": "2026-12-27T12:15:00+01:00"
+      }
+    },
+    "inbound": null,
+    "fetched_at": "2026-11-27T17:57:22+00:00",
+    "expires_at": "2026-11-27T18:27:22+00:00"
   },
-  "cached": false,
-  "source": "kiwi:graphql",
+  "cached": null,
+  "source": null,
   "fetched_at": null,
   "age": null
 }
@@ -1054,15 +974,17 @@ Parameters:
 
 ### `GET /routes`
 
-List published city-pair routes from Kiwi route sitemaps. Params: page, limit/offset.
+Published city-pair routes (cheap-flights pages) from one of Kiwi's route sitemaps, in sitemap order.
+
+Each successful request uses 5 credits.
 
 Methods: `routes` (Python, JavaScript/TypeScript, PHP, Ruby, Java) · `Routes` (Go) · `RoutesAsync` (C#)
 
 Parameters:
 
-- `page` (integer, optional): Which route sub-sitemap to read (0-based). Kiwi splits ~50k routes per file across many files. Example: `0`.
-- `limit` (integer, optional): Max routes per page. Example: `10`.
-- `offset` (integer, optional): Pagination offset within the sub-sitemap. Example: `0`.
+- `page` (integer, optional): which route sitemap to read, 0-based; Kiwi splits about 50k routes per file across many files. Example: `0`.
+- `limit` (integer, optional): Rows in one page, 1 to 200 (default 50).
+- `offset` (integer, optional): Rows to skip before the page starts (default 0).
 - `undefined` (string, optional)
 - `undefined` (string, optional)
 - `undefined` (string, optional)
@@ -1089,16 +1011,23 @@ Parameters:
           "name": "Istanbul Turkey"
         }
       }
-    ]
+    ],
+    "pagination": {
+      "count": 49949,
+      "has_more": true,
+      "next_cursor": "WzEsIjBkMTJiNGY3IixudWxsLDAseyJwYWdlIjoxfV0"
+    },
+    "fetched_at": "2026-11-27T17:57:24.241Z",
+    "age": 0
   },
-  "cached": false,
-  "source": "kiwi:sitemap",
+  "cached": null,
+  "source": null,
   "pagination": {
-    "total": 49949,
-    "limit": 50,
-    "offset": 0,
-    "count": 50,
-    "has_more": false,
+    "total": null,
+    "limit": null,
+    "offset": null,
+    "count": null,
+    "has_more": null,
     "next_cursor": null
   },
   "fetched_at": null,
@@ -1110,24 +1039,26 @@ Parameters:
 
 ### `GET /search`
 
-Flight search: itineraries with prices, airlines, routes and departure/arrival times. from/to accept place names, IATA codes or Kiwi ids; date/return_date, adults/children/infants, cabin, sort, currency, limit/offset.
+Flight itineraries for one departure day (and optional return day): prices, airlines, segments, local and UTC times and booking links, as kiwi.com ranks them (at most 25 per search).
+
+Each successful request uses 5 credits.
 
 Methods: `search` (Python, JavaScript/TypeScript, PHP, Ruby, Java) · `Search` (Go) · `SearchAsync` (C#)
 
 Parameters:
 
-- `from` (string, required): Origin: place name, IATA code or Kiwi id (e.g. 'london', 'LHR', 'City:london_gb'). Example: `london`.
-- `to` (string, required): Destination: place name, IATA code or Kiwi id. Example: `istanbul`.
-- `date` (string, optional): Outbound departure date, YYYY-MM-DD. Defaults to ~30 days out. Example: `2026-12-27`.
-- `return_date` (string, optional): Optional inbound date, YYYY-MM-DD. Set it for a round trip; omit for one-way. Example: `2027-01-03`.
-- `adults` (integer, optional): Adult passengers (1-9). Example: `1`.
-- `children` (integer, optional): Child passengers (0-9). Example: `0`.
-- `infants` (integer, optional): Infant passengers (0-9). Example: `0`.
-- `cabin` (string, optional): Cabin class. One of: `ECONOMY`, `PREMIUM_ECONOMY`, `BUSINESS`, `FIRST`. Example: `ECONOMY`.
-- `sort` (string, optional): Result ordering. One of: `QUALITY`, `PRICE`, `DURATION`. Example: `QUALITY`.
-- `currency` (string, optional): Price currency (ISO code). Example: `eur`.
-- `limit` (integer, optional): Max itineraries per page. Example: `10`.
-- `offset` (integer, optional): Pagination offset. Example: `0`.
+- `from` (string, optional): origin: place name, IATA code or Kiwi id (london, LHR, City:london_gb). Example: `london`.
+- `to` (string, optional): destination: place name, IATA code or Kiwi id. Example: `istanbul`.
+- `date` (string, optional): outbound departure date, YYYY-MM-DD; defaults to 30 days from today. A past date gives an empty list.
+- `return_date` (string, optional): inbound departure date, YYYY-MM-DD; set it for a round trip, omit for one-way.
+- `adults` (integer, optional): adult passengers (1-9). Example: `1`.
+- `children` (integer, optional): child passengers (0-9). Example: `0`.
+- `infants` (integer, optional): infant passengers (0-9, at most one per adult). Example: `0`.
+- `cabin` (string, optional): cabin class. One of: `ECONOMY`, `PREMIUM_ECONOMY`, `BUSINESS`, `FIRST`. Example: `ECONOMY`.
+- `sort` (string, optional): result ordering: QUALITY, PRICE or DURATION. One of: `QUALITY`, `PRICE`, `DURATION`. Example: `QUALITY`.
+- `currency` (string, optional): price currency (ISO code). Example: `eur`.
+- `limit` (integer, optional): Rows in one page, 1 to 200 (default 50).
+- `offset` (integer, optional): Rows to skip before the page starts (default 0).
 - `undefined` (string, optional)
 - `undefined` (string, optional)
 - `undefined` (string, optional)
@@ -1151,7 +1082,7 @@ Parameters:
         "name": "Istanbul",
         "code": "IST"
       },
-      "date": "2026-09-10",
+      "date": "2026-12-27",
       "return_date": null,
       "trip_type": "oneway",
       "passengers": {
@@ -1160,126 +1091,97 @@ Parameters:
         "infants": 0
       },
       "cabin": "ECONOMY",
-      "sort": "PRICE",
+      "sort": "QUALITY",
       "currency": "EUR"
     },
-    "total": 50,
-    "count": 50,
+    "total": 25,
+    "count": 25,
     "itineraries": [
       {
-        "id": "ItineraryOneWay:eyJwcm92...",
+        "id": "ItineraryOneWay:eyJwcm92aWRlcnMiOiJLSVdJLUJBU0lDOktJV0kiLCJyb3V0ZV9kYXRhIjoiVkY6MTk5MDpTVE46MTc5ODM4NjAwMDpTQVc6MTc5ODQwMDEwMDplY29ub215OkZhbHNlOjo6VkYiLCJwcmljZSI6IjExOCJ9",
         "type": "oneway",
         "price": {
-          "amount": 71,
+          "amount": 118,
           "currency": "EUR"
         },
-        "price_eur": 71,
-        "duration_seconds": 14400,
+        "price_eur": 118,
+        "duration_seconds": 14100,
         "provider": "Kiwi.com",
-        "booking_url": "https://www.kiwi.com/en/booking/?token=...",
+        "booking_url": "https://www.kiwi.com/en/booking/?direct=true&locale=en&currency=eur&passengers=1-0-0&token=HA4-FnJWszIzt3_rKlYLhY1BKbwyV2_TY5aMM7Bgxq7OtWpca5XaUs5hxSGvlg8EEJNDcrOpPHfD23K-oqZ8NnLPx3nd7QuvrncJTyEp2WEluP7zfQ-7sutHlAcPjcL6Qbrc2O_Ih6LlFqB31lw9RZbpUjyYlubn0-T2a2bznfLaNJW_5bWtjveFSSisO-30dPEdA3CeGYRPLOd0O6PNFPZUEzWeoH3wM4e_lr2ec6A2pBlEzUOxUcL_6J8-hs32D1UxPitumY2RHHvGjyjmMCMfnmkN3ZOSaLh-j92D2yooM3vJW_uXR0VBpWDby4iZEmBHP7yKXq7fgrV1jjK3Gz7EXKz8cxflYQDMVLSh7ugvtsRqv2v3IkqeudiTzvsdOn0jXO3-n9oznjadBXL9PEseVBPpWJjYdqBxHZjlg_pzSj9_gOqX5bfX5v9D72S2ffMm5aXsyCsgGnhhZt3I9UlqDCUz9EabkWx153JyHwUWoZMYw3T6JK2OA2NNiPkhTenzNIXbgOyfwG7DLkZxGkm_D3Jzix05WSGB74ydT_y2M7ineIclpqshi11DHroqXx2hiu1wkzHm6W_CB6gChetehhK7b5OzP_zC5W_y4TNCpfUUp3hqvQa6JUa0o5UfbD43ExlMBMcXc-DMqZq28xIUeTRvZkHxZs-uE2BwdqMgPPgPM3Ky9Zt6q9jDulQoCCHmhiHgdIG9LGMYaH9aB9FUZuULdgPgep6bLBx2F5Qx0YLTUb5en5xx4QCpSc7qM2TYDwTYHQ9MwibSt658lUHxRKoISGWz6qXzrPltbKgvZWGEJJrMmsg5CdCMG-BVd_6RiISJbYOWNciEpM0fCCxn9-KW79zS1eKNl96JBV1YGyg_mGtfxA34Ea0QEy14XvGznZjPUOQyZ5dkwRt7U7GgVPs17MKV5V3_d7FErFAQHcrZQ_R_4OtJrGe0KCoX7watxE0jfhLKRIZHgNOHfXVBzxlymG-ntblANaPJQWUBKBcon-d5fvM6SFTBY4o4MR9vzQdq39v41B-RtzOCqvcXVmhz_h1K8URMhWgUyijVhu7prreIuTGhNx1UmNxJO2Fa4cpU9t9Az0Za0zfn29sL5RnOkicqh3Q2SaaBTeh0%3D&searchType=oneWay&searchBags=0.0",
         "outbound": {
-          "duration_seconds": 14400,
+          "duration_seconds": 14100,
           "stops": 0,
           "segments": [
             {
-              "flight_number": "5729",
+              "flight_number": "1990",
               "carrier": {
-                "name": "Wizz Air UK",
-                "code": "W9"
+                "name": "AJet",
+                "code": "VF"
               },
-              "duration_seconds": 14400,
+              "operating_carrier": {
+                "name": "AJet",
+                "code": "VF"
+              },
+              "cabin": "ECONOMY",
+              "duration_seconds": 14100,
               "from": {
-                "airport": "Gatwick",
-                "code": "LGW",
+                "airport": "London Stansted",
+                "code": "STN",
                 "city": "London",
                 "country": "United Kingdom",
-                "local_time": "2026-09-10T13:30:00",
-                "utc_time": "2026-09-10T12:30:00"
+                "local_time": "2026-12-27T15:40:00+00:00",
+                "utc_time": "2026-12-27T15:40:00Z"
               },
               "to": {
-                "airport": "Istanbul Airport",
-                "code": "IST",
+                "airport": "Sabiha Gökçen International",
+                "code": "SAW",
                 "city": "Istanbul",
                 "country": "Turkey",
-                "local_time": "2026-09-10T19:30:00",
-                "utc_time": "2026-09-10T16:30:00"
-              }
+                "local_time": "2026-12-27T22:35:00+03:00",
+                "utc_time": "2026-12-27T19:35:00Z"
+              },
+              "layover_seconds": null
             }
           ],
           "from": {
-            "airport": "Gatwick",
-            "code": "LGW",
+            "airport": "London Stansted",
+            "code": "STN",
             "city": "London",
             "country": "United Kingdom",
-            "local_time": "2026-09-10T13:30:00",
-            "utc_time": "2026-09-10T12:30:00"
+            "local_time": "2026-12-27T15:40:00+00:00",
+            "utc_time": "2026-12-27T15:40:00Z"
           },
           "to": {
-            "airport": "Istanbul Airport",
-            "code": "IST",
+            "airport": "Sabiha Gökçen International",
+            "code": "SAW",
             "city": "Istanbul",
             "country": "Turkey",
-            "local_time": "2026-09-10T19:30:00",
-            "utc_time": "2026-09-10T16:30:00"
-          }
+            "local_time": "2026-12-27T22:35:00+03:00",
+            "utc_time": "2026-12-27T19:35:00Z"
+          },
+          "airlines": [
+            "VF"
+          ]
         },
-        "inbound": {
-          "duration_seconds": 14400,
-          "stops": 0,
-          "segments": [
-            {
-              "flight_number": "5729",
-              "carrier": {
-                "name": "Wizz Air UK",
-                "code": "W9"
-              },
-              "duration_seconds": 14400,
-              "from": {
-                "airport": "Gatwick",
-                "code": "LGW",
-                "city": "London",
-                "country": "United Kingdom",
-                "local_time": "2026-09-10T13:30:00",
-                "utc_time": "2026-09-10T12:30:00"
-              },
-              "to": {
-                "airport": "Istanbul Airport",
-                "code": "IST",
-                "city": "Istanbul",
-                "country": "Turkey",
-                "local_time": "2026-09-10T19:30:00",
-                "utc_time": "2026-09-10T16:30:00"
-              }
-            }
-          ],
-          "from": {
-            "airport": "Gatwick",
-            "code": "LGW",
-            "city": "London",
-            "country": "United Kingdom",
-            "local_time": "2026-09-10T13:30:00",
-            "utc_time": "2026-09-10T12:30:00"
-          },
-          "to": {
-            "airport": "Istanbul Airport",
-            "code": "IST",
-            "city": "Istanbul",
-            "country": "Turkey",
-            "local_time": "2026-09-10T19:30:00",
-            "utc_time": "2026-09-10T16:30:00"
-          }
-        }
+        "inbound": null
       }
-    ]
+    ],
+    "pagination": {
+      "count": 25,
+      "has_more": false,
+      "next_cursor": null
+    },
+    "fetched_at": "2026-11-27T17:57:24.922Z",
+    "age": 0
   },
-  "cached": false,
-  "source": "kiwi:graphql",
+  "cached": null,
+  "source": null,
   "pagination": {
-    "total": 50,
-    "limit": 50,
-    "offset": 0,
-    "count": 50,
-    "has_more": false,
+    "total": null,
+    "limit": null,
+    "offset": null,
+    "count": null,
+    "has_more": null,
     "next_cursor": null
   },
   "fetched_at": null,
@@ -1291,29 +1193,31 @@ Parameters:
 
 ### `GET /search-v2`
 
-Flight search with departure and return date windows, a price range and a stop limit. from/to take codes, names of any place type, countries, regions, continents, or to=anywhere; unclear values answer 400 with candidates. At most 50 itineraries per search: narrow it to reach others.
+Flight itineraries for departure (and optional return) date windows, with prices, segments, airlines, local and UTC times and booking links. The list holds at most cap (50) itineraries, in the order of sort; capped is true when kiwi.com had more for the search than were returned, so narrow the search (dates, places, price, stops) to see the rest.
+
+Each successful request uses 5 credits.
 
 Methods: `search_v2` (Python, Ruby) · `searchV2` (JavaScript/TypeScript, PHP, Java) · `SearchV2` (Go) · `SearchV2Async` (C#)
 
 Parameters:
 
-- `from` (string, required): Origin. Codes first: a 3-letter code is an airport (else a metro city code such as LON), an upper-case 2-letter code a country (else a continent such as EU). Then a name of any place type (city, airport, subdivision, country, region, continent), case and accent insensitive, or a search id from /places-v2 (e.g. 'Airport:CRL', 'Country:TR'). An unclear or unknown value answers 400 with candidates. Example: `CRL`.
-- `to` (string, required): Destination, same rules as from, plus 'anywhere' for every destination. Example: `Europe`.
-- `date_from` (string, optional): Start of the departure date window, YYYY-MM-DD. Defaults to 30 days from today.
-- `date_to` (string, optional): End of the departure date window, YYYY-MM-DD (inclusive). Defaults to date_from (a single day).
-- `return_from` (string, optional): Start of the return date window, YYYY-MM-DD. Set it for a round trip; omit for one-way.
-- `return_to` (string, optional): End of the return date window, YYYY-MM-DD (inclusive). Defaults to return_from.
-- `min_price` (number, optional): Lowest total price, in `currency`.
-- `max_price` (number, optional): Highest total price, in `currency`.
-- `max_stops` (integer, optional): Most stops per leg (0 = direct only). Omit for any. One of: `0`, `1`, `2`, `3`. Example: `0`.
-- `adults` (integer, optional): Adult passengers (1-9). Example: `1`.
-- `children` (integer, optional): Child passengers (0-8). Example: `0`.
-- `infants` (integer, optional): Infant passengers (at most one per adult). Example: `0`.
-- `cabin` (string, optional): Cabin class. One of: `ECONOMY`, `PREMIUM_ECONOMY`, `BUSINESS`, `FIRST`. Example: `ECONOMY`.
-- `sort` (string, optional): Which 50 itineraries the search keeps, and their order. One of: `QUALITY`, `PRICE`, `DURATION`. Example: `QUALITY`.
-- `currency` (string, optional): Price currency (3-letter ISO code); min_price and max_price use it too. Example: `eur`.
-- `limit` (integer, optional): Itineraries per page. A search returns at most 50 itineraries (see data.cap). Example: `50`.
-- `offset` (integer, optional): Offset within the at most 50 itineraries of this search. Rows past 50 are not reachable by offset: narrow the dates, price or stops instead. Example: `0`.
+- `from` (string, optional): origin. A 3-letter upper-case code is an airport, searched together with the other airports of its metro area as kiwi.com does (IST also finds SAW), else a metro city code such as LON; an upper-case 2-letter code a country (else a continent such as EU); otherwise a name of any place type (city, airport, subdivision, country, region, continent), case and accent insensitive, or a search id from /places-v2 (Airport:CRL, Country:TR). Unclear or unknown values answer 400 with candidates. Example: `CRL`.
+- `to` (string, optional): destination, same rules as from, plus 'anywhere'. Example: `Europe`.
+- `date_from` (string, optional): start of the departure window, YYYY-MM-DD; defaults to 30 days from today.
+- `date_to` (string, optional): end of the departure window, YYYY-MM-DD, inclusive; defaults to date_from.
+- `return_from` (string, optional): start of the return window, YYYY-MM-DD; set it for a round trip, omit for one-way.
+- `return_to` (string, optional): end of the return window, YYYY-MM-DD, inclusive; defaults to return_from.
+- `min_price` (string, optional): lowest total price, in currency.
+- `max_price` (string, optional): highest total price, in currency.
+- `max_stops` (string, optional): most stops per leg (0 = direct only); omit for any.
+- `adults` (integer, optional): adult passengers (1-9). Example: `1`.
+- `children` (integer, optional): child passengers (0-8). Example: `0`.
+- `infants` (integer, optional): infant passengers, at most one per adult. Example: `0`.
+- `cabin` (string, optional): cabin class. One of: `ECONOMY`, `PREMIUM_ECONOMY`, `BUSINESS`, `FIRST`. Example: `ECONOMY`.
+- `sort` (string, optional): order of the list: QUALITY (kiwi.com's best first, then the rest of what it has), PRICE (cheapest first) or DURATION (shortest first). One of: `QUALITY`, `PRICE`, `DURATION`. Example: `QUALITY`.
+- `currency` (string, optional): price currency, 3-letter ISO code; min_price and max_price use it too. Example: `eur`.
+- `limit` (integer, optional): Rows in one page, 1 to 200 (default 50).
+- `offset` (integer, optional): Rows to skip before the page starts (default 0).
 - `undefined` (string, optional)
 - `undefined` (string, optional)
 - `undefined` (string, optional)
@@ -1334,13 +1238,7 @@ Parameters:
         "country": "BE",
         "matched_by": "code",
         "alternatives": [
-          {
-            "id": "Subdivision:GA_US",
-            "name": "Georgia",
-            "type": "subdivision",
-            "code": "GA",
-            "parent": "United States"
-          }
+          null
         ]
       },
       "to": {
@@ -1352,17 +1250,11 @@ Parameters:
         "country": null,
         "matched_by": "name",
         "alternatives": [
-          {
-            "id": "Subdivision:GA_US",
-            "name": "Georgia",
-            "type": "subdivision",
-            "code": "GA",
-            "parent": "United States"
-          }
+          null
         ]
       },
-      "date_from": "2026-12-10",
-      "date_to": "2026-12-16",
+      "date_from": "2026-12-27",
+      "date_to": "2026-12-27",
       "return_from": null,
       "return_to": null,
       "trip_type": "oneway",
@@ -1384,119 +1276,90 @@ Parameters:
     "count": 50,
     "itineraries": [
       {
-        "id": "ItineraryOneWay:eyJwcm92...",
+        "id": "ItineraryOneWay:eyJwcm92aWRlcnMiOiJLSVdJLUJBU0lDOktJV0kiLCJyb3V0ZV9kYXRhIjoiRlI6NTkyNjpDUkw6MTc5ODQwMDcwMDpaQUc6MTc5ODQwNzMwMDplY29ub215OkZhbHNlOjo6TFciLCJwcmljZSI6IjI2In0=",
         "type": "oneway",
         "price": {
-          "amount": 71,
+          "amount": 26,
           "currency": "EUR"
         },
-        "price_eur": 71,
-        "duration_seconds": 14400,
+        "price_eur": 26,
+        "duration_seconds": 6600,
         "provider": "Kiwi.com",
-        "booking_url": "https://www.kiwi.com/en/booking/?token=...",
+        "booking_url": "https://www.kiwi.com/en/booking/?direct=true&locale=en&currency=eur&passengers=1-0-0&token=H8HqA0KFUpfwlJz3HUDqkzIB5cuzRce4bgloS0_X3p92dFMTf32b892SLEOFQ1YNN3Mkf8LQw6wCWy4CF9xn4DSqkAQPInQh18n3ty2WgVpAEqVg0SjNuPnmDXgRFR13vqsAoyixfC9VGgysrJrew4LMzArhlqmfe2dDB0lpq6t3DkPL096lN-w7RtI4OAqrnxUFAqWaxjPkxW4w8mSPz5Z9xAnkLrx1pqMYS7elfvqgTRtV7gSIrju1dYhdjVTwTgyBpj0PkLJ8xPbp5B684EoNBtrmUcoIlehJKIERV0xMvv1Im5Q9MK-2B14AN8MRzSlnV82FM_9d0ipvXCd6ydJ3Xs6ZiMqoL6gExJseHL5rp1_o57d4iZbuMN_uijVYgI8T6W6QUTH-HQVzFyxqeV2eiMiSS9ziQR3kG4Z6FPzV3Y4JmgqM2JBBKZAdQh76Wj9Cyt3jvma2KpQfKkZkKEEDuawIWFFm24_W-dovDd1arA3lwDrHXXkgx7My0io3EYNn8hNT4uNMjFDawfdVyd6M_VREhvhCTI7kd0_bHpokq-lEs2nYkrMxEvcjnS5pQIzjblk2SX4dV_W3DyK_9o634mNdO-sFcmaszfRYsfKwszApPofqg2uZ-F6mEs-D-dsPi-GisD3ALqKJMsW0n4o8kjvU8Ykd9yMdmc8pxrlA--_vQu9NMtLiD65AQGPEDIt8804EGN0P2zLqai5OPppvYCu1v-_UCjexJ6g2GzlNrldQ11Nqt3a6JoiU7_KhWUKncOuf7AHL2DenbtYWo_h8k5OjlJ3oQAuo3dZ6Xfjm406X59a9U1Dv6VIGL-QDWDWkrakS3afnc4m6tw863hHUvDS94dOlVTbhhruUm4u2IxMBqzKlHowYBvDuy0p7ALxBzGOLbVsMoehyriXC9iS2Iajw8jbLr0CWvU1dXOGkx2Cpdaxml_yAZ77BFom842eVQrECC5iIjckpVDiY6nKdcSoCG9zJbMRLtokiuOw96_J8abzzRkOWnsGAXCJ-UxhyEwajNRVWehYVGiZpbDc2OZ4C1-F64IjnK2V_QqjOdihXiS_T_6b6x9-gNAiTYvLJAiG1weFLjcg6vIVeCXS8RZDh6YHKDVKjDr71jb6KKp1kCj9CqW7yuDOYDvbXT&searchType=oneWay&searchBags=0.0",
         "outbound": {
-          "duration_seconds": 14400,
+          "duration_seconds": 6600,
           "stops": 0,
           "segments": [
             {
-              "flight_number": "5729",
+              "flight_number": "5926",
               "carrier": {
-                "name": "Wizz Air UK",
-                "code": "W9"
+                "name": "Ryanair",
+                "code": "FR"
               },
-              "duration_seconds": 14400,
+              "operating_carrier": {
+                "name": "Lauda Europe",
+                "code": "LW"
+              },
+              "cabin": "ECONOMY",
+              "duration_seconds": 6600,
               "from": {
-                "airport": "Gatwick",
-                "code": "LGW",
-                "city": "London",
-                "country": "United Kingdom",
-                "local_time": "2026-09-10T13:30:00",
-                "utc_time": "2026-09-10T12:30:00"
+                "airport": "Brussels South Charleroi",
+                "code": "CRL",
+                "city": "Brussels",
+                "country": "Belgium",
+                "local_time": "2026-12-27T20:45:00+01:00",
+                "utc_time": "2026-12-27T19:45:00Z"
               },
               "to": {
-                "airport": "Istanbul Airport",
-                "code": "IST",
-                "city": "Istanbul",
-                "country": "Turkey",
-                "local_time": "2026-09-10T19:30:00",
-                "utc_time": "2026-09-10T16:30:00"
-              }
+                "airport": "Zagreb",
+                "code": "ZAG",
+                "city": "Zagreb",
+                "country": "Croatia",
+                "local_time": "2026-12-27T22:35:00+01:00",
+                "utc_time": "2026-12-27T21:35:00Z"
+              },
+              "layover_seconds": null
             }
           ],
           "from": {
-            "airport": "Gatwick",
-            "code": "LGW",
-            "city": "London",
-            "country": "United Kingdom",
-            "local_time": "2026-09-10T13:30:00",
-            "utc_time": "2026-09-10T12:30:00"
+            "airport": "Brussels South Charleroi",
+            "code": "CRL",
+            "city": "Brussels",
+            "country": "Belgium",
+            "local_time": "2026-12-27T20:45:00+01:00",
+            "utc_time": "2026-12-27T19:45:00Z"
           },
           "to": {
-            "airport": "Istanbul Airport",
-            "code": "IST",
-            "city": "Istanbul",
-            "country": "Turkey",
-            "local_time": "2026-09-10T19:30:00",
-            "utc_time": "2026-09-10T16:30:00"
-          }
+            "airport": "Zagreb",
+            "code": "ZAG",
+            "city": "Zagreb",
+            "country": "Croatia",
+            "local_time": "2026-12-27T22:35:00+01:00",
+            "utc_time": "2026-12-27T21:35:00Z"
+          },
+          "airlines": [
+            "FR"
+          ]
         },
-        "inbound": {
-          "duration_seconds": 14400,
-          "stops": 0,
-          "segments": [
-            {
-              "flight_number": "5729",
-              "carrier": {
-                "name": "Wizz Air UK",
-                "code": "W9"
-              },
-              "duration_seconds": 14400,
-              "from": {
-                "airport": "Gatwick",
-                "code": "LGW",
-                "city": "London",
-                "country": "United Kingdom",
-                "local_time": "2026-09-10T13:30:00",
-                "utc_time": "2026-09-10T12:30:00"
-              },
-              "to": {
-                "airport": "Istanbul Airport",
-                "code": "IST",
-                "city": "Istanbul",
-                "country": "Turkey",
-                "local_time": "2026-09-10T19:30:00",
-                "utc_time": "2026-09-10T16:30:00"
-              }
-            }
-          ],
-          "from": {
-            "airport": "Gatwick",
-            "code": "LGW",
-            "city": "London",
-            "country": "United Kingdom",
-            "local_time": "2026-09-10T13:30:00",
-            "utc_time": "2026-09-10T12:30:00"
-          },
-          "to": {
-            "airport": "Istanbul Airport",
-            "code": "IST",
-            "city": "Istanbul",
-            "country": "Turkey",
-            "local_time": "2026-09-10T19:30:00",
-            "utc_time": "2026-09-10T16:30:00"
-          }
-        }
+        "inbound": null
       }
-    ]
+    ],
+    "pagination": {
+      "count": 50,
+      "has_more": false,
+      "next_cursor": null
+    },
+    "fetched_at": "2026-11-27T17:58:40.716Z",
+    "age": 0
   },
-  "cached": false,
-  "source": "kiwi:graphql",
+  "cached": null,
+  "source": null,
   "pagination": {
-    "total": 50,
-    "limit": 50,
-    "offset": 0,
-    "count": 50,
-    "has_more": false,
+    "total": null,
+    "limit": null,
+    "offset": null,
+    "count": null,
+    "has_more": null,
     "next_cursor": null
   },
   "fetched_at": null,
@@ -1508,33 +1371,35 @@ Parameters:
 
 ### `GET /search-v3`
 
-Flight search with date windows plus several origins and destinations (from=BRU,CRL), local departure and arrival time windows, and every itinerary the search has, paged by cursor, with total_estimate. Each itinerary names the origin and destination it matched and when its price expires.
+Every itinerary kiwi.com has for up to 3 origins and 3 destinations over departure (and return) date windows, with local departure and arrival time windows. Each itinerary names the origin and destination it matched (origin, destination), its fetch time and when its quoted price expires; total_estimate counts them and total_exact says whether none of the underlying searches was cut off.
+
+Each successful request uses 5 credits.
 
 Methods: `search_v3` (Python, Ruby) · `searchV3` (JavaScript/TypeScript, PHP, Java) · `SearchV3` (Go) · `SearchV3Async` (C#)
 
 Parameters:
 
-- `from` (string, required): Origin: one place or a comma list of up to 3 (BRU,CRL or LON,STN). Each item follows the /search-v2 rules: a 3-letter code is an airport (else a metro city code such as LON), an upper-case 2-letter code a country (else a continent), then a name of any place type, case and accent insensitive, or a search id from /places-v2 ('Airport:CRL'). Names that contain a comma need their search id. An unclear item answers 400 with candidates. Example: `BRU,CRL`.
-- `to` (string, required): Destination: one place or a comma list of up to 3, same rules as from, or 'anywhere' alone for every destination. Example: `BCN`.
-- `date_from` (string, optional): Start of the departure date window, YYYY-MM-DD. Defaults to 30 days from today.
-- `date_to` (string, optional): End of the departure date window, YYYY-MM-DD (inclusive, at most 92 days after date_from). Defaults to date_from (a single day).
-- `return_from` (string, optional): Start of the return date window, YYYY-MM-DD. Set it for a round trip; omit for one-way.
-- `return_to` (string, optional): End of the return date window, YYYY-MM-DD (inclusive). Defaults to return_from.
-- `departure_from` (string, optional): Earliest local departure time of the outbound leg, HH:MM (00:00 to 23:59), at the first departure airport. A window cannot cross midnight. Example: `06:00`.
-- `departure_to` (string, optional): Latest local departure time of the outbound leg, HH:MM (inclusive, 00:00 to 24:00), at the first departure airport. A window cannot cross midnight. Example: `12:00`.
-- `arrival_from` (string, optional): Earliest local arrival time of the outbound leg, HH:MM (00:00 to 23:59), at the final arrival airport. A window cannot cross midnight. Example: `08:00`.
-- `arrival_to` (string, optional): Latest local arrival time of the outbound leg, HH:MM (inclusive, 00:00 to 24:00), at the final arrival airport. A window cannot cross midnight. Example: `16:00`.
-- `min_price` (number, optional): Lowest total price, in `currency`. Example: `150`.
-- `max_price` (number, optional): Highest total price, in `currency`. Example: `2000`.
-- `max_stops` (integer, optional): Most stops per leg (0 = direct only). Omit for any. One of: `0`, `1`, `2`, `3`. Example: `0`.
-- `adults` (integer, optional): Adult passengers (1-9). Example: `2`.
-- `children` (integer, optional): Child passengers (0-8). Example: `1`.
-- `infants` (integer, optional): Infant passengers (at most one per adult). Example: `1`.
-- `cabin` (string, optional): Cabin class. One of: `ECONOMY`, `PREMIUM_ECONOMY`, `BUSINESS`, `FIRST`. Example: `ECONOMY`.
-- `sort` (string, optional): Order of the itineraries. PRICE and DURATION sort all of them; QUALITY keeps the site's own ranking inside each part of the search (the best of each first), then price. One of: `QUALITY`, `PRICE`, `DURATION`. Example: `QUALITY`.
-- `currency` (string, optional): Price currency (3-letter ISO code); min_price and max_price use it too. Example: `usd`.
-- `limit` (integer, optional): Itineraries per page. Every itinerary of the search is reachable: follow pagination.next_cursor (or offset) while pagination.has_more is true. Example: `50`.
-- `offset` (integer, optional): Offset into all the itineraries of the search. Example: `0`.
+- `from` (string, optional): origin: one place or a comma list of up to 3 (BRU,CRL or LON,STN). Each item: a 3-letter upper-case code is an airport (else a metro city code such as LON), an upper-case 2-letter code a country (else a continent); otherwise a name of any place type, case and accent insensitive, or a search id from /places-v2 (Airport:CRL). Names containing a comma need their search id. Unclear items answer 400 with candidates. Example: `BRU,CRL`.
+- `to` (string, optional): destination: one place or a comma list of up to 3, same rules, or 'anywhere' alone. Example: `BCN`.
+- `date_from` (string, optional): start of the departure window, YYYY-MM-DD; defaults to 30 days from today.
+- `date_to` (string, optional): end of the departure window, YYYY-MM-DD, inclusive, at most 92 days after date_from; defaults to date_from.
+- `return_from` (string, optional): start of the return window, YYYY-MM-DD; set it for a round trip, omit for one-way.
+- `return_to` (string, optional): end of the return window, YYYY-MM-DD, inclusive; defaults to return_from.
+- `departure_from` (string, optional): earliest local departure time of the outbound leg, HH:MM, at the first departure airport.
+- `departure_to` (string, optional): latest local departure time of the outbound leg, HH:MM inclusive (up to 24:00). A window cannot cross midnight.
+- `arrival_from` (string, optional): earliest local arrival time of the outbound leg, HH:MM, at the final arrival airport.
+- `arrival_to` (string, optional): latest local arrival time of the outbound leg, HH:MM inclusive (up to 24:00). A window cannot cross midnight.
+- `min_price` (string, optional): lowest total price, in currency.
+- `max_price` (string, optional): highest total price, in currency.
+- `max_stops` (string, optional): most stops per leg (0 = direct only); omit for any.
+- `adults` (integer, optional): adult passengers (1-9). Example: `1`.
+- `children` (integer, optional): child passengers (0-8). Example: `0`.
+- `infants` (integer, optional): infant passengers, at most one per adult. Example: `0`.
+- `cabin` (string, optional): cabin class. One of: `ECONOMY`, `PREMIUM_ECONOMY`, `BUSINESS`, `FIRST`. Example: `ECONOMY`.
+- `sort` (string, optional): PRICE or DURATION sort all itineraries; QUALITY keeps kiwi.com's ranking inside each part of the search (the best of each first), then price. One of: `QUALITY`, `PRICE`, `DURATION`. Example: `QUALITY`.
+- `currency` (string, optional): price currency, 3-letter ISO code; min_price and max_price use it too. Example: `eur`.
+- `limit` (integer, optional): Rows in one page, 1 to 200 (default 50).
+- `offset` (integer, optional): Rows to skip before the page starts (default 0).
 - `undefined` (string, optional)
 - `undefined` (string, optional)
 - `undefined` (string, optional)
@@ -1550,19 +1415,13 @@ Parameters:
         {
           "input": "BRU",
           "id": "Airport:BRU",
-          "name": "Brussels Airport",
+          "name": "Brussels",
           "type": "airport",
-          "code": "CRL",
+          "code": "BRU",
           "country": "BE",
           "matched_by": "code",
           "alternatives": [
-            {
-              "id": "Subdivision:GA_US",
-              "name": "Georgia",
-              "type": "subdivision",
-              "code": "GA",
-              "parent": "United States"
-            }
+            null
           ]
         }
       ],
@@ -1570,35 +1429,23 @@ Parameters:
         {
           "input": "BCN",
           "id": "Airport:BCN",
-          "name": "Josep Tarradellas Barcelona-El Prat",
+          "name": "Barcelona–El Prat",
           "type": "airport",
           "code": "BCN",
           "country": "ES",
           "matched_by": "code",
           "alternatives": [
-            {
-              "id": "Subdivision:GA_US",
-              "name": "Georgia",
-              "type": "subdivision",
-              "code": "GA",
-              "parent": "United States"
-            }
+            null
           ]
         }
       ],
-      "date_from": "2026-12-10",
-      "date_to": "2026-12-16",
+      "date_from": "2026-12-27",
+      "date_to": "2026-12-27",
       "return_from": null,
       "return_to": null,
       "trip_type": "oneway",
-      "departure_window": {
-        "from": "06:00",
-        "to": "12:00"
-      },
-      "arrival_window": {
-        "from": "08:00",
-        "to": "16:00"
-      },
+      "departure_window": null,
+      "arrival_window": null,
       "min_price": null,
       "max_price": null,
       "max_stops": null,
@@ -1611,154 +1458,121 @@ Parameters:
       "sort": "QUALITY",
       "currency": "EUR"
     },
-    "total_estimate": 226,
-    "total_exact": true,
-    "upstream_searches": 13,
+    "total_estimate": 86,
+    "total_exact": false,
+    "upstream_searches": 36,
     "max_upstream_searches": 36,
     "failed_searches": 0,
     "quote_ttl_seconds": 1800,
-    "count": 226,
+    "count": 86,
     "itineraries": [
       {
-        "id": "ItineraryOneWay:eyJwcm92...",
+        "id": "ItineraryOneWay:eyJwcm92aWRlcnMiOiJLSVdJLUJBU0lDOktJV0kiLCJyb3V0ZV9kYXRhIjoiVlk6MTA3NzpCUlU6MTc5ODM2MjYwMDpCQ046MTc5ODM3MDEwMDplY29ub215OkZhbHNlOjo6VlkiLCJwcmljZSI6IjE2NyJ9",
         "type": "oneway",
         "price": {
-          "amount": 71,
+          "amount": 167,
           "currency": "EUR"
         },
-        "price_eur": 71,
-        "duration_seconds": 14400,
+        "price_eur": 167,
+        "duration_seconds": 7500,
         "provider": "Kiwi.com",
-        "booking_url": "https://www.kiwi.com/en/booking/?token=...",
+        "booking_url": "https://www.kiwi.com/en/booking/?direct=true&locale=en&currency=eur&passengers=1-0-0&token=HSRgX6wf1RR8q9Bg0MBvEOewA35aK3VViy59Axf_NlIxXj4yxzwNT6ch8aMwtHGGGEnwx479JTaQTGC62GUfrISskQ7BnKQaXom8zNV_9ZNXfxTyKmu2_m2Ovv0wOaiC4IZkxfnexTqC83SgATP3-sTAs4ekVw4ZuwD8EfioRxic1-DDpTSvhQfVA4-OoNn7Qnc95i5OenAruJOss_sPJ66gkpSWLTqzR15P2yPqllHxfzo_TvKFSBTOosnogFWHq7jZsMAz4r3QBGdjRgBiiSmM6u0dUZccmBL_S_YjuEhxCnOcwl-T-7cEe6_hmy7mXUbJISkoXVlLdkI2cND1pcnPp3wewG7lYEYBV3bAd-1oLfn6dpWAOxyYQLb7IH22supBDkgJvlOiTBQNtn-Taz6N65NCyQKQKXsK2LD1F_-OJ3D8dh8bMIaQgt8aO_QuRUGLtqxVgVtn77y71dlV3uOB5J-24i5NwuBlbkNXTF4Fa-cq7JM3xYCQCvOg5DZzD9tmdUMTQ6s18BQXqLVLpV9k2JoacBEG7yqcQwwOcGOf-jqJRSOIfMtK8yBSJ8-vloGFhw0ELlp9kCmVxqZGVcHis9C5DXoEdf6Ck7Yn_ty_nownqmYyxn3bIF3x9FuLWHF9Oaa0HbSaIWtEemg3C7NajD61ZYumpOO4vd8DOSijpOyt7nohwsKXFzs_cOlPnsbfjZh3sfw7DMzMTu_EOq1b3EEcF2T5AcfSAH9ZhhixvgmqokyaHYg6TQWa-miBf1IEHemuLN8T-tyCVnw3U8zmH5pj7DgDHdM8un6qVVUjzN0NGBSIWP-Gj4N0GpTqnTESyjHFRKdABGhpztSg38d0ODaCposfPAlVaLI7uKFcIWeYODU6M2sFnly2OaTe1XpThq_LNlBz1zYAU5-WB9o5QYGZ78NhO1yfneu2SdxllM3RdpROWrn9qLRIlcupSHhW9jLvrqjxtzYNQ9hvwKnunu9pbr-45MOD_CmCImrJNtPmX2XNZvq-32brv1B_DNGinc3MbmXgCKVpHhjCK3F3tywF75yNEFYBeY4fERfboujdeFtyTAlovv9cFnyhcU8rV8CwxGC1-7ls6YvNqxQgUxdrmipj4dNr6HxzNtuw%3D&searchType=oneWay&searchBags=0.0",
         "outbound": {
-          "duration_seconds": 14400,
+          "duration_seconds": 7500,
           "stops": 0,
           "segments": [
             {
-              "flight_number": "5729",
+              "flight_number": "1077",
               "carrier": {
-                "name": "Wizz Air UK",
-                "code": "W9"
+                "name": "Vueling",
+                "code": "VY"
               },
-              "duration_seconds": 14400,
+              "operating_carrier": {
+                "name": "Vueling",
+                "code": "VY"
+              },
+              "cabin": "ECONOMY",
+              "duration_seconds": 7500,
               "from": {
-                "airport": "Gatwick",
-                "code": "LGW",
-                "city": "London",
-                "country": "United Kingdom",
-                "local_time": "2026-09-10T13:30:00",
-                "utc_time": "2026-09-10T12:30:00",
-                "time": "2026-09-10T13:30:00+01:00"
+                "airport": "Brussels",
+                "code": "BRU",
+                "city": "Brussels",
+                "country": "Belgium",
+                "local_time": "2026-12-27T10:10:00+01:00",
+                "utc_time": "2026-12-27T09:10:00Z",
+                "time": "2026-12-27T10:10:00+01:00"
               },
               "to": {
-                "airport": "Istanbul Airport",
-                "code": "IST",
-                "city": "Istanbul",
-                "country": "Turkey",
-                "local_time": "2026-09-10T19:30:00",
-                "utc_time": "2026-09-10T16:30:00",
-                "time": "2026-09-10T19:30:00+03:00"
-              }
+                "airport": "Barcelona–El Prat",
+                "code": "BCN",
+                "city": "Barcelona",
+                "country": "Spain",
+                "local_time": "2026-12-27T12:15:00+01:00",
+                "utc_time": "2026-12-27T11:15:00Z",
+                "time": "2026-12-27T12:15:00+01:00"
+              },
+              "layover_seconds": null
             }
           ],
           "from": {
-            "airport": "Gatwick",
-            "code": "LGW",
-            "city": "London",
-            "country": "United Kingdom",
-            "local_time": "2026-09-10T13:30:00",
-            "utc_time": "2026-09-10T12:30:00",
-            "time": "2026-09-10T13:30:00+01:00"
+            "airport": "Brussels",
+            "code": "BRU",
+            "city": "Brussels",
+            "country": "Belgium",
+            "local_time": "2026-12-27T10:10:00+01:00",
+            "utc_time": "2026-12-27T09:10:00Z",
+            "time": "2026-12-27T10:10:00+01:00"
           },
           "to": {
-            "airport": "Istanbul Airport",
-            "code": "IST",
-            "city": "Istanbul",
-            "country": "Turkey",
-            "local_time": "2026-09-10T19:30:00",
-            "utc_time": "2026-09-10T16:30:00",
-            "time": "2026-09-10T19:30:00+03:00"
-          }
-        },
-        "inbound": {
-          "duration_seconds": 14400,
-          "stops": 0,
-          "segments": [
-            {
-              "flight_number": "5729",
-              "carrier": {
-                "name": "Wizz Air UK",
-                "code": "W9"
-              },
-              "duration_seconds": 14400,
-              "from": {
-                "airport": "Gatwick",
-                "code": "LGW",
-                "city": "London",
-                "country": "United Kingdom",
-                "local_time": "2026-09-10T13:30:00",
-                "utc_time": "2026-09-10T12:30:00",
-                "time": "2026-09-10T13:30:00+01:00"
-              },
-              "to": {
-                "airport": "Istanbul Airport",
-                "code": "IST",
-                "city": "Istanbul",
-                "country": "Turkey",
-                "local_time": "2026-09-10T19:30:00",
-                "utc_time": "2026-09-10T16:30:00",
-                "time": "2026-09-10T19:30:00+03:00"
-              }
-            }
-          ],
-          "from": {
-            "airport": "Gatwick",
-            "code": "LGW",
-            "city": "London",
-            "country": "United Kingdom",
-            "local_time": "2026-09-10T13:30:00",
-            "utc_time": "2026-09-10T12:30:00",
-            "time": "2026-09-10T13:30:00+01:00"
+            "airport": "Barcelona–El Prat",
+            "code": "BCN",
+            "city": "Barcelona",
+            "country": "Spain",
+            "local_time": "2026-12-27T12:15:00+01:00",
+            "utc_time": "2026-12-27T11:15:00Z",
+            "time": "2026-12-27T12:15:00+01:00"
           },
-          "to": {
-            "airport": "Istanbul Airport",
-            "code": "IST",
-            "city": "Istanbul",
-            "country": "Turkey",
-            "local_time": "2026-09-10T19:30:00",
-            "utc_time": "2026-09-10T16:30:00",
-            "time": "2026-09-10T19:30:00+03:00"
-          }
+          "airlines": [
+            "VY"
+          ]
         },
+        "inbound": null,
         "origin": {
-          "input": "CRL",
-          "id": "Airport:CRL",
-          "name": "Brussels South Charleroi",
+          "input": "BRU",
+          "id": "Airport:BRU",
+          "name": "Brussels",
+          "code": "BRU",
           "type": "airport",
-          "code": "CRL",
-          "match": "exact"
+          "match": "code"
         },
         "destination": {
           "input": "BCN",
           "id": "Airport:BCN",
-          "name": "Josep Tarradellas Barcelona-El Prat",
-          "type": "airport",
+          "name": "Barcelona–El Prat",
           "code": "BCN",
-          "match": "exact"
+          "type": "airport",
+          "match": "code"
         },
-        "fetched_at": "2026-11-26T08:40:12.512Z",
-        "expires_at": "2026-11-26T09:10:12.512Z"
+        "fetched_at": "2026-11-27T17:57:28+00:00",
+        "expires_at": "2026-11-27T18:27:28+00:00"
       }
-    ]
+    ],
+    "pagination": {
+      "count": 86,
+      "has_more": false,
+      "next_cursor": null
+    },
+    "fetched_at": "2026-11-27T17:57:29.513Z",
+    "age": 0
   },
-  "cached": false,
-  "source": "kiwi:graphql",
+  "cached": null,
+  "source": null,
   "pagination": {
-    "total": 226,
-    "limit": 50,
-    "offset": 0,
-    "count": 50,
-    "has_more": true,
+    "total": null,
+    "limit": null,
+    "offset": null,
+    "count": null,
+    "has_more": null,
     "next_cursor": null
   },
   "fetched_at": null,
@@ -1775,7 +1589,7 @@ Parameters:
 - [maviapi MCP server](https://maviapi.com/docs#mcp): the same API as tools for Claude, Cursor and other AI agents.
 - [All maviapi APIs](https://maviapi.com/apis?utm_source=github&utm_medium=readme&utm_campaign=sdk-kiwi). Need a website that is not there? [Ask for it](https://maviapi.com/?utm_source=github&utm_medium=readme&utm_campaign=sdk-kiwi) and get an API for it.
 
-Other unofficial SDKs: [Airbnb](https://github.com/maviapi-sdks/airbnb-unofficial-sdk) · [Booking.com](https://github.com/maviapi-sdks/booking-unofficial-sdk) · [FlightList](https://github.com/maviapi-sdks/flightlist-unofficial-sdk) · [GetYourGuide](https://github.com/maviapi-sdks/getyourguide-unofficial-sdk) · [Google Search](https://github.com/maviapi-sdks/google-search-unofficial-sdk) · [MarineTraffic](https://github.com/maviapi-sdks/marinetraffic-unofficial-sdk) · [Speedtest](https://github.com/maviapi-sdks/speedtest-unofficial-sdk) · [Trainline](https://github.com/maviapi-sdks/trainline-unofficial-sdk) · [Trendyol](https://github.com/maviapi-sdks/trendyol-unofficial-sdk) · [Tripadvisor](https://github.com/maviapi-sdks/tripadvisor-unofficial-sdk) · [Yemeksepeti](https://github.com/maviapi-sdks/yemeksepeti-unofficial-sdk)
+Other unofficial SDKs: [Airbnb](https://github.com/maviapi-sdks/airbnb-unofficial-sdk) · [Booking.com](https://github.com/maviapi-sdks/booking-unofficial-sdk) · [FlightList](https://github.com/maviapi-sdks/flightlist-unofficial-sdk) · [GetYourGuide](https://github.com/maviapi-sdks/getyourguide-unofficial-sdk) · [Google Search](https://github.com/maviapi-sdks/google-search-unofficial-sdk) · [Madrid Cultural Agenda](https://github.com/maviapi-sdks/madrid-cultural-agenda-unofficial-sdk) · [MarineTraffic](https://github.com/maviapi-sdks/marinetraffic-unofficial-sdk) · [Speedtest](https://github.com/maviapi-sdks/speedtest-unofficial-sdk) · [Trainline](https://github.com/maviapi-sdks/trainline-unofficial-sdk) · [Trendyol](https://github.com/maviapi-sdks/trendyol-unofficial-sdk) · [Tripadvisor](https://github.com/maviapi-sdks/tripadvisor-unofficial-sdk) · [Yemeksepeti](https://github.com/maviapi-sdks/yemeksepeti-unofficial-sdk)
 
 ## License
 
